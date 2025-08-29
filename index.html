@@ -6,34 +6,77 @@
     <title>Deedapit Bakery & Cafe - Invoice</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+      body {
+        font-family: 'Inter', sans-serif;
+        background-color: #fff1f2; /* softer pink background */
+      }
+      .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        background-color: rgba(0, 0, 0, 0.4);
+        padding-top: 60px;
+        transition: opacity 0.3s ease;
+      }
+      .modal.show {
+        display: block;
+        opacity: 1;
+      }
+      .modal-content {
+        background-color: #fff;
+        margin: 5% auto;
+        padding: 24px 32px;
+        border-radius: 0.75rem;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+        max-width: 480px;
+        position: relative;
+      }
+      .close-button {
+        color: #999;
+        position: absolute;
+        top: 12px;
+        right: 16px;
+        font-size: 28px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: color 0.2s ease;
+      }
+      .close-button:hover,
+      .close-button:focus {
+        color: #e11d48; /* pink-600 */
+      }
+      .action-column {
+        width: 100px;
+      }
       @media print {
         .no-print {
           display: none !important;
         }
-
         body {
           margin: 0;
           padding: 20px;
           font-size: 14px;
+          background: white !important;
         }
-
         .invoice-container {
           box-shadow: none !important;
           border: none !important;
         }
-
         .bill-ship-container {
           display: flex !important;
           gap: 4rem;
+          border-bottom: 1px solid #000;
+          padding-bottom: 1rem;
         }
-
         .bill-ship-container > div {
           flex: 1;
-          border: 1px solid #000;
-          padding: 10px;
-          margin-bottom: 20px;
         }
-
         .signature-footer {
           margin-top: 4rem !important;
           display: flex;
@@ -41,7 +84,6 @@
           width: 100%;
           padding-top: 1cm;
         }
-
         .signature-block {
           width: 45%;
           border-top: 1px solid #000;
@@ -50,279 +92,220 @@
           font-weight: 600;
           font-size: 12px;
         }
-
-        input,
-        textarea {
-          -webkit-appearance: none;
-          -moz-appearance: none;
-          appearance: none;
-          background-color: transparent;
-          border: none;
-          padding: 0;
-          height: auto;
-          box-shadow: none;
-          display: inline-block;
-          width: 100%;
-          resize: none;
-          font-size: 14px;
-        }
-
-        input:not(.no-print),
-        textarea:not(.no-print) {
-          content: attr(value) !important;
-          display: block;
-        }
-
-        .print-text {
-          white-space: pre-wrap !important;
-          word-wrap: break-word !important;
+        .bill-to-info,
+        .ship-to-info {
           display: block !important;
         }
-
-        .action-column {
-          display: none !important;
+        .bill-to-info .name,
+        .ship-to-info .name {
+          font-weight: bold;
         }
-        
-        .text-sm {
-            font-size: 12px;
+        .bill-to-info .address,
+        .ship-to-info .address {
+          white-space: pre-wrap;
         }
-        
         .text-2xl {
-            font-size: 1.25rem !important;
+          font-size: 1.25rem !important;
         }
-        
         .text-4xl {
-            font-size: 2rem !important;
+          font-size: 2rem !important;
         }
-        
-        /* Table styles for print */
         table {
-            border-collapse: collapse;
-            width: 100%;
+          border-collapse: collapse;
+          width: 100%;
         }
-        th, td {
-            border: 1px solid #000;
-            padding: 8px;
-            text-align: left;
+        th,
+        td {
+          border: none;
         }
-        th {
-            background-color: #f2f2f2;
+        thead tr {
+          border-bottom: 1px solid #000;
+        }
+        tbody {
+          border-top: 1px solid #000;
         }
       }
-
       .invoice-item:hover {
-        background-color: #fdf2f8;
+        background-color: #fce7f3; /* pink-100 */
       }
-
-      .signature-footer {
-        margin-top: 4rem;
-        display: flex;
-        justify-content: space-between;
-        width: 100%;
-      }
-
-      .signature-block {
-        width: 45%;
-        border-top: 1px solid #000;
-        padding-top: 0.5rem;
-        text-align: center;
-        font-weight: 600;
-        font-size: 0.9rem;
-      }
-      
-      body {
-        font-size: 14px;
-      }
-
-      h1 {
-        font-size: 2.25rem;
-      }
-      h2 {
-        font-size: 1.5rem;
-      }
-      h3 {
-        font-size: 1.125rem;
-      }
-
-      input, textarea, p, td, th, label, button {
-        font-size: 14px;
-      }
-      
-      .text-sm {
-        font-size: 12px;
-      }
-      
-      .signature-block {
-        font-size: 12px;
-      }
-
-      .text-2xl { font-size: 1.5rem; }
-      .text-4xl { font-size: 2.25rem; }
-      .text-lg { font-size: 1.125rem; }
-
-      /* Box for Bill To and Ship To on screen */
-      .bill-to-box, .ship-to-box {
-        border: 1px solid #d1d5db;
+      .bill-to-box,
+      .ship-to-box {
+        border: 1px dashed #d1d5db;
         padding: 1rem;
         border-radius: 0.5rem;
+        min-height: 120px;
+        background-color: #fff0f6; /* very light pink */
+      }
+      textarea:focus,
+      input:focus {
+        outline: none;
+        box-shadow: 0 0 0 3px #f9a8d4; /* pink-300 */
+        border-color: #ec4899; /* pink-500 */
+      }
+      button:focus {
+        outline: 2px solid #ec4899;
+        outline-offset: 2px;
       }
     </style>
   </head>
-  <body class="bg-pink-50 min-h-screen p-4">
+  <body class="min-h-screen p-4">
     <div
-      class="max-w-4xl mx-auto bg-white rounded-xl shadow-lg p-6 invoice-container"
+      class="max-w-4xl mx-auto bg-white rounded-xl shadow-lg p-8 invoice-container"
+      role="main"
+      aria-label="Invoice form"
     >
-      <div class="flex justify-between items-start mb-8">
-        <div class="text-left">
-          <h1 class="text-4xl font-bold text-pink-600 mb-2">
+
+      <!-- Header -->
+      <header class="flex flex-col md:flex-row justify-between items-start mb-8 gap-6">
+        <section class="text-left flex-1 min-w-0">
+          <h1 class="text-4xl font-extrabold text-pink-600 mb-2 leading-tight">
             Deedapit Bakery &amp; Cafe
           </h1>
-          <p class="text-gray-600">
-            G-19, Bazaar Rakyat PKPS,
-          </p>
-          <p class="text-gray-600">
-            Jalan Permai Sejati,
-          </p>
-          <p class="text-gray-600">
-            Pusat Bandar Putra Permai,
-          </p>
-          <p class="text-gray-600">
-            43300 Seri Kembangan, Selangor
-          </p>
-          <p class="text-gray-600">
-            Phone: 011-1751 41636 | Email: deedapit@gmail.com
-          </p>
-          <p class="text-gray-600">
-            Registration Number: AS0474606-X
-          </p>
-        </div>
-        <div class="text-right">
-          <div class="mb-2">
+          <address class="not-italic text-gray-600 space-y-0.5 text-sm">
+            <p>G-19, Bazaar Rakyat PKPS,</p>
+            <p>Jalan Permai Sejati,</p>
+            <p>Pusat Bandar Putra Permai,</p>
+            <p>43300 Seri Kembangan, Selangor</p>
+            <p>Phone: <a href="tel:011175141636" class="underline hover:text-pink-700">011-1751 41636</a> | Email: <a href="mailto:deedapit@gmail.com" class="underline hover:text-pink-700">deedapit@gmail.com</a></p>
+            <p>Registration Number: AS0474606-X</p>
+          </address>
+        </section>
+        <section class="text-right flex-shrink-0 space-y-4 min-w-[160px]">
+          <div>
             <label
               for="invoiceNumber"
-              class="block text-sm font-medium text-gray-700"
+              class="block text-sm font-semibold text-gray-700 mb-1"
               >Invoice #</label
             >
             <input
               type="text"
               id="invoiceNumber"
               placeholder="INV-(YYMM/XXX)"
-              class="w-36 px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 text-sm"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 text-sm"
+              aria-describedby="invoiceNumberHelp"
             />
+            <p id="invoiceNumberHelp" class="sr-only">Enter invoice number</p>
           </div>
           <div>
             <label
               for="invoiceDate"
-              class="block text-sm font-medium text-gray-700"
+              class="block text-sm font-semibold text-gray-700 mb-1"
               >Date</label
             >
             <input
               type="date"
               id="invoiceDate"
-              class="w-36 px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 text-sm"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 text-sm"
+              aria-describedby="invoiceDateHelp"
             />
+            <p id="invoiceDateHelp" class="sr-only">Select invoice date</p>
           </div>
-        </div>
-      </div>
+        </section>
+      </header>
 
-      <div
-        class="bill-ship-container grid grid-cols-1 md:grid-cols-2 gap-8 mb-8"
+      <!-- Bill To & Ship To sections -->
+      <section
+        class="bill-ship-container grid grid-cols-1 md:grid-cols-2 gap-6 mb-6"
+        aria-label="Billing and Shipping Information"
       >
-        <div class="bill-to-box">
-          <h2 class="text-2xl font-semibold text-pink-700 mb-4">Bill To</h2>
-          <div class="space-y-3">
-            <input
-              type="text"
-              id="billToName"
-              placeholder="Customer Name"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
-            />
-            <textarea
-              id="billToAddress"
-              placeholder="Billing Address"
-              rows="3"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
-            ></textarea>
-            <input
-              type="tel"
-              id="billToPhone"
-              placeholder="Phone Number"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
-            />
+        <article class="bill-to-box" aria-labelledby="billToHeading">
+          <div class="flex justify-between items-center mb-2">
+            <h2 id="billToHeading" class="text-2xl font-semibold text-pink-700">
+              Bill To
+            </h2>
+            <button
+              id="editBillToBtn"
+              class="px-3 py-1 bg-pink-500 text-white text-sm rounded-md hover:bg-pink-600 no-print focus:ring-2 focus:ring-pink-400 focus:ring-offset-1"
+              aria-haspopup="dialog"
+              aria-controls="billToModal"
+              aria-expanded="false"
+            >
+              Edit
+            </button>
           </div>
-        </div>
+          <address class="bill-to-info not-italic space-y-1 text-gray-700 min-h-[5rem]">
+            <p class="name font-semibold" id="billToNameDisplay" aria-live="polite"></p>
+            <p class="address whitespace-pre-wrap" id="billToAddressDisplay" aria-live="polite"></p>
+            <p class="phone" id="billToPhoneDisplay" aria-live="polite"></p>
+          </address>
+        </article>
 
-        <div class="ship-to-box">
-          <h2 class="text-2xl font-semibold text-pink-700 mb-4">Ship To</h2>
-          <div class="space-y-3">
-            <input
-              type="text"
-              id="shipToName"
-              placeholder="Recipient Name"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
-            />
-            <textarea
-              id="shipToAddress"
-              placeholder="Shipping Address"
-              rows="3"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
-            ></textarea>
-            <input
-              type="tel"
-              id="shipToPhone"
-              placeholder="Phone Number"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
-            />
+        <article class="ship-to-box" aria-labelledby="shipToHeading">
+          <div class="flex justify-between items-center mb-2">
+            <h2 id="shipToHeading" class="text-2xl font-semibold text-pink-700">
+              Ship To
+            </h2>
+            <button
+              id="editShipToBtn"
+              class="px-3 py-1 bg-pink-500 text-white text-sm rounded-md hover:bg-pink-600 no-print focus:ring-2 focus:ring-pink-400 focus:ring-offset-1"
+              aria-haspopup="dialog"
+              aria-controls="shipToModal"
+              aria-expanded="false"
+            >
+              Edit
+            </button>
           </div>
-        </div>
-      </div>
+          <address class="ship-to-info not-italic space-y-1 text-gray-700 min-h-[5rem]">
+            <p class="name font-semibold" id="shipToNameDisplay" aria-live="polite"></p>
+            <p class="address whitespace-pre-wrap" id="shipToAddressDisplay" aria-live="polite"></p>
+            <p class="phone" id="shipToPhoneDisplay" aria-live="polite"></p>
+          </address>
+        </article>
+      </section>
 
-      <div class="mb-8">
-        <h2 class="text-2xl font-semibold text-pink-700 mb-4">Order Items</h2>
-        <div class="overflow-x-auto">
-          <table class="w-full">
+      <!-- Order Items -->
+      <section aria-label="Order Items" class="mb-8">
+        <h2 class="text-2xl font-semibold text-pink-700 mb-2">Order Items</h2>
+        <div class="overflow-x-auto rounded-lg border border-pink-300 shadow-sm">
+          <table class="w-full table-fixed border-collapse" role="grid" aria-describedby="orderItemsDesc">
+            <caption id="orderItemsDesc" class="sr-only">List of items in the invoice</caption>
             <thead>
               <tr class="bg-pink-100">
-                <th class="p-3 text-left">Item Description</th>
-                <th class="p-3 text-center">Quantity</th>
-                <th class="p-3 text-right">Unit Price (RM)</th>
-                <th class="p-3 text-right">Total (RM)</th>
-                <th class="p-3 text-center action-column no-print">Actions</th>
+                <th scope="col" class="p-3 text-left w-[50%]">Item Description</th>
+                <th scope="col" class="p-3 text-center w-[12%]">Quantity</th>
+                <th scope="col" class="p-3 text-right w-[18%]">Unit Price (RM)</th>
+                <th scope="col" class="p-3 text-right w-[18%]">Total (RM)</th>
+                <th scope="col" class="p-3 text-center action-column no-print" aria-label="Actions">Actions</th>
               </tr>
             </thead>
-            <tbody id="invoiceItems">
-              <tr class="invoice-item border-b">
-                <td class="p-3">
+            <tbody id="invoiceItems" role="rowgroup">
+              <tr class="invoice-item border-b" role="row">
+                <td class="p-3" role="gridcell">
                   <textarea
                     placeholder="Item name"
                     rows="2"
-                    class="w-full px-2 py-1 border border-gray-300 rounded item-description"
+                    class="w-full px-2 py-1 border border-gray-300 rounded item-description resize-none focus:ring-2 focus:ring-pink-400 focus:border-pink-500"
+                    aria-label="Item description"
                   ></textarea>
                 </td>
-                <td class="p-3">
+                <td class="p-3" role="gridcell">
                   <input
                     type="number"
                     min="1"
                     value="1"
-                    class="w-20 px-2 py-1 border border-gray-300 rounded text-center item-quantity"
+                    class="w-20 px-2 py-1 border border-gray-300 rounded text-center item-quantity focus:ring-2 focus:ring-pink-400 focus:border-pink-500"
                     onchange="calculateTotals()"
+                    aria-label="Quantity"
                   />
                 </td>
-                <td class="p-3">
+                <td class="p-3" role="gridcell">
                   <input
                     type="number"
                     step="0.01"
                     min="0"
                     placeholder="0.00"
-                    class="w-24 px-2 py-1 border border-gray-300 rounded text-right item-price"
+                    class="w-24 px-2 py-1 border border-gray-300 rounded text-right item-price focus:ring-2 focus:ring-pink-400 focus:border-pink-500"
                     onchange="calculateTotals()"
+                    aria-label="Unit price in ringgit"
                   />
                 </td>
-                <td class="p-3 text-right item-total">0.00</td>
-                <td class="p-3 text-center action-column no-print">
+                <td class="p-3 text-right item-total font-semibold" role="gridcell" aria-live="polite" aria-atomic="true">0.00</td>
+                <td class="p-3 text-center action-column no-print" role="gridcell">
                   <button
                     onclick="removeItem(this)"
-                    class="text-red-500 hover:text-red-700"
+                    class="text-red-600 hover:text-red-800 focus:outline-none focus:ring-2 focus:ring-red-400 rounded"
+                    aria-label="Remove item"
+                    title="Remove item"
                   >
                     Remove
                   </button>
@@ -333,113 +316,327 @@
         </div>
         <button
           onclick="addItem()"
-          class="mt-4 px-4 py-2 bg-pink-500 text-white rounded-md hover:bg-pink-600 no-print"
+          class="mt-4 px-5 py-2 bg-pink-600 text-white rounded-md hover:bg-pink-700 no-print focus:ring-4 focus:ring-pink-300"
+          aria-label="Add new item"
         >
           Add Item
         </button>
-      </div>
+      </section>
 
-      <div class="bg-pink-50 p-6 rounded-lg mb-6">
-        <div class="grid grid-cols-2 gap-4 max-w-md ml-auto">
-          <div class="text-right font-semibold">Subtotal (RM):</div>
-          <div class="text-right" id="subtotal">RM 0.00</div>
-
-          <div
-            class="text-right font-semibold text-lg text-pink-700"
-          >
-            Total Amount (RM):
-          </div>
-          <div
-            class="text-right text-lg font-bold text-pink-700"
-            id="total"
-          >
-            RM 0.00
-          </div>
+      <!-- Totals -->
+      <section
+        class="bg-pink-50 p-6 rounded-lg mb-6 max-w-md ml-auto"
+        aria-label="Invoice totals"
+      >
+        <div class="grid grid-cols-2 gap-4">
+          <div class="text-right font-semibold text-gray-700">Subtotal (RM):</div>
+          <div class="text-right font-mono" id="subtotal" aria-live="polite" aria-atomic="true">RM 0.00</div>
+          <div class="text-right font-semibold text-lg text-pink-700">Total Amount (RM):</div>
+          <div class="text-right text-lg font-extrabold text-pink-700" id="total" aria-live="polite" aria-atomic="true">RM 0.00</div>
         </div>
-      </div>
+      </section>
 
-      <div>
+      <!-- Payment & Signature -->
+      <section aria-label="Payment terms and signature" class="mb-8">
         <h3 class="text-lg font-semibold text-pink-700 mb-2">Payment Terms</h3>
-        <p class="text-gray-600">
-          Please make payment within 15 days. Thank you for choosing Deedapit
-          Bakery &amp; Cafe!
+        <p class="text-gray-700 mb-1">
+          Please make payment within 15 days. Thank you for choosing Deedapit Bakery &amp; Cafe!
         </p>
-        <p class="text-gray-600">
-          Please make payment to Deedapit Bakery Bakery &amp; Cafe. 
+        <p class="text-gray-700 mb-1">
+          Please make payment to Deedapit Bakery &amp; Cafe.
         </p>
-        <p class="text-gray-600">
-          Maybank 5621 4281 5021. 
-        </p>
-        <div class="signature-footer" style="padding-top: 1cm">
-          <div class="signature-block">Authorized By</div>
-          <div class="signature-block">Received By</div>
+        <p class="text-gray-700 mb-6 font-mono">Maybank 5621 4281 5021</p>
+        <div class="signature-footer flex justify-between w-full max-w-4xl mx-auto" style="padding-top: 1cm;">
+          <div class="signature-block border-t border-gray-900 pt-2 text-center font-semibold text-sm select-none" aria-label="Authorized By signature line">Authorized By</div>
+          <div class="signature-block border-t border-gray-900 pt-2 text-center font-semibold text-sm select-none" aria-label="Received By signature line">Received By</div>
         </div>
-      </div>
+      </section>
 
-        <div class="signature-footer" style="padding-top: 1cm">
-          <div class="signature-block">Authorized By</div>
-          <div class="signature-block">Received By</div>
-        </div>
-      </div>
-
-      <div class="flex gap-4 justify-center no-print mt-8">
+      <!-- Action buttons -->
+      <nav class="flex gap-4 justify-center no-print mt-8" aria-label="Form actions">
         <button
           onclick="printInvoice()"
-          class="px-6 py-3 bg-blue-500 text-white rounded-md hover:bg-blue-600 font-semibold"
+          class="px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-semibold focus:ring-4 focus:ring-blue-300"
+          aria-label="Print Invoice"
         >
           Print Invoice
         </button>
         <button
           onclick="resetForm()"
-          class="px-6 py-3 bg-gray-500 text-white rounded-md hover:bg-gray-600 font-semibold"
+          class="px-6 py-3 bg-gray-600 text-white rounded-md hover:bg-gray-700 font-semibold focus:ring-4 focus:ring-gray-400"
+          aria-label="Reset Form"
         >
           Reset Form
         </button>
-        <button
-          onclick="window.print()"
-          class="px-6 py-3 bg-green-500 text-white rounded-md hover:bg-green-600 font-semibold"
-        >
-          Print
+      </nav>
+    </div>
+
+    <!-- Modals -->
+    <div id="billToModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="billToModalTitle" aria-hidden="true">
+      <div class="modal-content">
+        <button type="button" class="close-button" aria-label="Close">&times;</button>
+        <h2 id="billToModalTitle" class="text-xl font-bold mb-4 text-pink-700">Edit Billing Information</h2>
+        <form id="billToForm" onsubmit="return false;">
+          <div class="mb-4">
+            <label for="billToNameInput" class="block text-gray-700 text-sm font-semibold mb-1">Name</label>
+            <input
+              id="billToNameInput"
+              type="text"
+              placeholder="Customer Name"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-pink-400 focus:border-pink-500"
+              autocomplete="name"
+              required
+            />
+          </div>
+          <div class="mb-4">
+            <label for="billToAddressInput" class="block text-gray-700 text-sm font-semibold mb-1">Address</label>
+            <textarea
+              id="billToAddressInput"
+              rows="3"
+              placeholder="Billing Address"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-pink-400 focus:border-pink-500 resize-none"
+              required
+            ></textarea>
+          </div>
+          <div class="mb-6">
+            <label for="billToPhoneInput" class="block text-gray-700 text-sm font-semibold mb-1">Phone Number</label>
+            <input
+              id="billToPhoneInput"
+              type="tel"
+              placeholder="Phone Number"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-pink-400 focus:border-pink-500"
+              autocomplete="tel"
+                            pattern="[\d\s\-\+\(\)]*"
+              title="Enter a valid phone number"
+              required
+            />
+          </div>
+          <div class="flex items-center justify-end">
+            <button
+              id="saveBillToBtn"
+              type="submit"
+              class="bg-pink-500 hover:bg-pink-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+            >
+              Save
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div id="shipToModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="shipToModalTitle" aria-hidden="true">
+      <div class="modal-content">
+        <button type="button" class="close-button" aria-label="Close">&times;</button>
+        <h2 id="shipToModalTitle" class="text-xl font-bold mb-4 text-pink-700">Edit Shipping Information</h2>
+        <form id="shipToForm" onsubmit="return false;">
+          <div class="mb-4">
+            <label for="shipToNameInput" class="block text-gray-700 text-sm font-semibold mb-1">Name</label>
+            <input
+              id="shipToNameInput"
+              type="text"
+              placeholder="Recipient Name"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-pink-400 focus:border-pink-500"
+              autocomplete="name"
+              required
+            />
+          </div>
+          <div class="mb-4">
+            <label for="shipToAddressInput" class="block text-gray-700 text-sm font-semibold mb-1">Address</label>
+            <textarea
+              id="shipToAddressInput"
+              rows="3"
+              placeholder="Shipping Address"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-pink-400 focus:border-pink-500 resize-none"
+              required
+            ></textarea>
+          </div>
+          <div class="mb-6">
+            <label for="shipToPhoneInput" class="block text-gray-700 text-sm font-semibold mb-1">Phone Number</label>
+            <input
+              id="shipToPhoneInput"
+              type="tel"
+              placeholder="Phone Number"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-pink-400 focus:border-pink-500"
+              autocomplete="tel"
+              pattern="[\d\s\-\+\(\)]*"
+              title="Enter a valid phone number"
+              required
+            />
+          </div>
+          <div class="flex items-center justify-end">
+            <button
+              id="saveShipToBtn"
+              type="submit"
+              class="bg-pink-500 hover:bg-pink-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+            >
+              Save
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Custom Alert Modal -->
+    <div id="customAlert" class="modal" role="alertdialog" aria-modal="true" aria-labelledby="alertMessage" aria-hidden="true">
+      <div class="modal-content text-center">
+        <h3 id="alertMessage" class="text-xl font-bold mb-4"></h3>
+        <button id="alertOkBtn" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:ring-2 focus:ring-blue-400">
+          OK
         </button>
       </div>
     </div>
-    <script>
-      document.getElementById("invoiceDate").valueAsDate = new Date();
 
+    <!-- Custom Confirm Modal -->
+    <div id="customConfirm" class="modal" role="dialog" aria-modal="true" aria-labelledby="confirmMessage" aria-hidden="true">
+      <div class="modal-content text-center">
+        <h3 id="confirmMessage" class="text-xl font-bold mb-4"></h3>
+        <div class="flex justify-center gap-4">
+          <button id="confirmOkBtn" class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:ring-2 focus:ring-red-400">
+            Reset
+          </button>
+          <button id="confirmCancelBtn" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:ring-2 focus:ring-gray-400">
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Modal helper functions
+      function openModal(modal) {
+        modal.classList.add('show');
+        modal.setAttribute('aria-hidden', 'false');
+        // Focus first focusable element inside modal
+        const focusable = modal.querySelector('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+        if (focusable) focusable.focus();
+      }
+      function closeModal(modal) {
+        modal.classList.remove('show');
+        modal.setAttribute('aria-hidden', 'true');
+      }
+
+      // Close buttons
+      document.querySelectorAll('.close-button').forEach(btn => {
+        btn.addEventListener('click', () => {
+          closeModal(btn.closest('.modal'));
+        });
+      });
+
+      // Close modal on outside click
+      window.addEventListener('click', e => {
+        document.querySelectorAll('.modal.show').forEach(modal => {
+          if (e.target === modal) closeModal(modal);
+        });
+      });
+
+      // Bill To modal open/save
+      const billToModal = document.getElementById('billToModal');
+      const editBillToBtn = document.getElementById('editBillToBtn');
+      const billToForm = document.getElementById('billToForm');
+      editBillToBtn.addEventListener('click', () => {
+        document.getElementById('billToNameInput').value = document.getElementById('billToNameDisplay').textContent;
+        document.getElementById('billToAddressInput').value = document.getElementById('billToAddressDisplay').textContent;
+        document.getElementById('billToPhoneInput').value = document.getElementById('billToPhoneDisplay').textContent;
+        openModal(billToModal);
+      });
+      billToForm.addEventListener('submit', () => {
+        document.getElementById('billToNameDisplay').textContent = document.getElementById('billToNameInput').value.trim();
+        document.getElementById('billToAddressDisplay').textContent = document.getElementById('billToAddressInput').value.trim();
+        document.getElementById('billToPhoneDisplay').textContent = document.getElementById('billToPhoneInput').value.trim();
+        closeModal(billToModal);
+      });
+
+      // Ship To modal open/save
+      const shipToModal = document.getElementById('shipToModal');
+      const editShipToBtn = document.getElementById('editShipToBtn');
+      const shipToForm = document.getElementById('shipToForm');
+      editShipToBtn.addEventListener('click', () => {
+        document.getElementById('shipToNameInput').value = document.getElementById('shipToNameDisplay').textContent;
+        document.getElementById('shipToAddressInput').value = document.getElementById('shipToAddressDisplay').textContent;
+        document.getElementById('shipToPhoneInput').value = document.getElementById('shipToPhoneDisplay').textContent;
+        openModal(shipToModal);
+      });
+      shipToForm.addEventListener('submit', () => {
+        document.getElementById('shipToNameDisplay').textContent = document.getElementById('shipToNameInput').value.trim();
+        document.getElementById('shipToAddressDisplay').textContent = document.getElementById('shipToAddressInput').value.trim();
+        document.getElementById('shipToPhoneDisplay').textContent = document.getElementById('shipToPhoneInput').value.trim();
+        closeModal(shipToModal);
+      });
+
+      // Custom alert modal
+      const customAlert = document.getElementById('customAlert');
+      const alertMessage = document.getElementById('alertMessage');
+      const alertOkBtn = document.getElementById('alertOkBtn');
+      function showCustomAlert(message) {
+        alertMessage.textContent = message;
+        openModal(customAlert);
+      }
+      alertOkBtn.addEventListener('click', () => {
+        closeModal(customAlert);
+      });
+      window.showCustomAlert = showCustomAlert;
+
+      // Custom confirm modal
+      const customConfirm = document.getElementById('customConfirm');
+      const confirmMessage = document.getElementById('confirmMessage');
+      const confirmOkBtn = document.getElementById('confirmOkBtn');
+      const confirmCancelBtn = document.getElementById('confirmCancelBtn');
+      let confirmCallback = null;
+      function showCustomConfirm(message, callback) {
+        confirmMessage.textContent = message;
+        confirmCallback = callback;
+        openModal(customConfirm);
+      }
+      confirmOkBtn.addEventListener('click', () => {
+        if (confirmCallback) confirmCallback(true);
+        closeModal(customConfirm);
+      });
+      confirmCancelBtn.addEventListener('click', () => {
+        if (confirmCallback) confirmCallback(false);
+        closeModal(customConfirm);
+      });
+
+      // Invoice number generation
       function generateInvoiceNumber() {
         const now = new Date();
         const year = now.getFullYear().toString().slice(-2);
         const month = (now.getMonth() + 1).toString().padStart(2, '0');
-        const randomNum = Math.floor(Math.random() * 1000)
-          .toString()
-          .padStart(3, '0');
+        const randomNum = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
         return `INV-${year}${month}/${randomNum}`;
       }
 
+      // Initialize invoice number and date
       const invoiceInput = document.getElementById("invoiceNumber");
-      if (!invoiceInput.value) {
+      if (!invoiceInput.value.trim()) {
         invoiceInput.value = generateInvoiceNumber();
       }
+      const invoiceDateInput = document.getElementById("invoiceDate");
+      if (!invoiceDateInput.value) {
+        invoiceDateInput.valueAsDate = new Date();
+      }
 
+      // Add item row
       function addItem() {
         const itemsContainer = document.getElementById("invoiceItems");
         const newItem = document.createElement("tr");
         newItem.className = "invoice-item border-b";
         newItem.innerHTML = `
-        <td class="p-3">
-          <textarea
-            placeholder="Item name"
-            rows="2"
-            class="w-full px-2 py-1 border border-gray-300 rounded item-description"
-          ></textarea>
-        </td>
+          <td class="p-3">
+            <textarea
+              placeholder="Item name"
+              rows="2"
+              class="w-full px-2 py-1 border border-gray-300 rounded item-description resize-none focus:ring-2 focus:ring-pink-400 focus:border-pink-500"
+              aria-label="Item description"
+            ></textarea>
+          </td>
           <td class="p-3">
             <input
               type="number"
               min="1"
               value="1"
-              class="w-20 px-2 py-1 border border-gray-300 rounded text-center item-quantity"
+              class="w-20 px-2 py-1 border border-gray-300 rounded text-center item-quantity focus:ring-2 focus:ring-pink-400 focus:border-pink-500"
               onchange="calculateTotals()"
+              aria-label="Quantity"
             />
           </td>
           <td class="p-3">
@@ -448,27 +645,31 @@
               step="0.01"
               min="0"
               placeholder="0.00"
-              class="w-24 px-2 py-1 border border-gray-300 rounded text-right item-price"
+              class="w-24 px-2 py-1 border border-gray-300 rounded text-right item-price focus:ring-2 focus:ring-pink-400 focus:border-pink-500"
               onchange="calculateTotals()"
+              aria-label="Unit price in ringgit"
             />
           </td>
-          <td class="p-3 text-right item-total">0.00</td>
+          <td class="p-3 text-right item-total font-semibold" aria-live="polite" aria-atomic="true">0.00</td>
           <td class="p-3 text-center action-column no-print">
-            <button onclick="removeItem(this)" class="text-red-500 hover:text-red-700">Remove</button>
+            <button onclick="removeItem(this)" class="text-red-600 hover:text-red-800 focus:outline-none focus:ring-2 focus:ring-red-400 rounded" aria-label="Remove item" title="Remove item">Remove</button>
           </td>
-        </tr>
-      `;
+        `;
         itemsContainer.appendChild(newItem);
       }
 
+      // Remove item row
       function removeItem(button) {
         const row = button.closest("tr");
         if (document.querySelectorAll(".invoice-item").length > 1) {
           row.remove();
           calculateTotals();
+        } else {
+          showCustomAlert("At least one item is required.");
         }
       }
 
+      // Calculate totals
       function calculateTotals() {
         let subtotal = 0;
         const items = document.querySelectorAll(".invoice-item");
@@ -486,66 +687,52 @@
         document.getElementById("total").textContent = "RM " + total.toFixed(2);
       }
 
+      // Reset form with confirmation
       function resetForm() {
-        if (
-          confirm("Are you sure you want to reset the form? All data will be lost.")
-        ) {
-          document.getElementById("invoiceNumber").value = generateInvoiceNumber();
-          document.getElementById("invoiceDate").valueAsDate = new Date();
-          document.getElementById("billToName").value = "";
-          document.getElementById("billToAddress").value = "";
-          document.getElementById("billToPhone").value = "";
-          document.getElementById("shipToName").value = "";
-          document.getElementById("shipToAddress").value = "";
-          document.getElementById("shipToPhone").value = "";
-          const itemsContainer = document.getElementById("invoiceItems");
-          itemsContainer.innerHTML = `
-        <tr class="invoice-item border-b">
-          <td class="p-3">
-            <textarea
-              placeholder="Item name"
-              rows="2"
-              class="w-full px-2 py-1 border border-gray-300 rounded item-description"
-            ></textarea>
-          </td>
-          <td class="p-3">
-            <input
-              type="number"
-              min="1"
-              value="1"
-              class="w-20 px-2 py-1 border border-gray-300 rounded text-center item-quantity"
-              onchange="calculateTotals()"
-            />
-          </td>
-          <td class="p-3">
-            <input
-              type="number"
-              step="0.01"
-              min="0"
-              placeholder="0.00"
-              class="w-24 px-2 py-1 border border-gray-300 rounded text-right item-price"
-              onchange="calculateTotals()"
-            />
-          </td>
-          <td class="p-3 text-right item-total">0.00</td>
-          <td class="p-3 text-center action-column no-print">
-            <button onclick="removeItem(this)" class="text-red-500 hover:text-red-700">Remove</button>
-          </td>
-        </tr>
-      `;
-          calculateTotals();
-        }
+        showCustomConfirm("Are you sure you want to reset the form? All data will be lost.", (result) => {
+          if (result) {
+            document.getElementById("invoiceNumber").value = generateInvoiceNumber();
+            document.getElementById("invoiceDate").valueAsDate = new Date();
+            document.getElementById("billToNameDisplay").textContent = "";
+            document.getElementById("billToAddressDisplay").textContent = "";
+            document.getElementById("billToPhoneDisplay").textContent = "";
+            document.getElementById("shipToNameDisplay").textContent = "";
+            document.getElementById("shipToAddressDisplay").textContent = "";
+            document.getElementById("shipToPhoneDisplay").textContent = "";
+            const itemsContainer = document.getElementById("invoiceItems");
+            itemsContainer.innerHTML = `
+              <tr class="invoice-item border-b">
+                <td class="p-3">
+                  <textarea placeholder="Item name" rows="2" class="w-full px-2 py-1 border border-gray-300 rounded item-description resize-none focus:ring-2 focus:ring-pink-400 focus:border-pink-500"></textarea>
+                </td>
+                <td class="p-3">
+                  <input type="number" min="1" value="1" class="w-20 px-2 py-1 border border-gray-300 rounded text-center item-quantity" onchange="calculateTotals()" aria-label="Quantity"/>
+                </td>
+                <td class="p-3">
+                  <input type="number" step="0.01" min="0" placeholder="0.00" class="w-24 px-2 py-1 border border-gray-300 rounded text-right item-price" onchange="calculateTotals()" aria-label="Unit price in ringgit"/>
+                </td>
+                <td class="p-3 text-right item-total font-semibold" aria-live="polite" aria-atomic="true">0.00</td>
+                <td class="p-3 text-center action-column no-print">
+                  <button onclick="removeItem(this)" class="text-red-600 hover:text-red-800 focus:outline-none focus:ring-2 focus:ring-red-400 rounded" aria-label="Remove item" title="Remove item">Remove</button>
+                </td>
+              </tr>
+            `;
+            calculateTotals();
+          }
+        });
       }
 
+      // Print invoice with validation
       function printInvoice() {
-        const billToName = document.getElementById("billToName").value;
+        const billToName = document.getElementById("billToNameDisplay").textContent.trim();
         if (!billToName) {
-          alert("Please enter Bill To customer name before printing.");
+          showCustomAlert("Please enter Bill To customer name before printing.");
           return;
         }
         window.print();
       }
 
+      // Initialize totals on page load
       calculateTotals();
     </script>
   </body>
