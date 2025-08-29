@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Deedapit Bakery & Cafe - Invoice</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      @media print {
+        .no-print {
+          display: none !important;
+        }
+
+        body {
+          margin: 0;
+          padding: 20px;
+          font-size: 14px;
+        }
+
+        .invoice-container {
+          box-shadow: none !important;
+          border: none !important;
+        }
+
+        .bill-ship-container {
+          display: flex !important;
+          gap: 4rem;
+        }
+
+        .bill-ship-container > div {
+          flex: 1;
+          border: 1px solid #000;
+          padding: 10px;
+          margin-bottom: 20px;
+        }
+
+        .signature-footer {
+          margin-top: 4rem !important;
+          display: flex;
+          justify-content: space-between;
+          width: 100%;
+          padding-top: 3cm;
+        }
+
+        .signature-block {
+          width: 45%;
+          border-top: 1px solid #000;
+          padding-top: 0.5rem;
+          text-align: center;
+          font-weight: 600;
+          font-size: 12px;
+        }
+
+        input,
+        textarea {
+          -webkit-appearance: none;
+          -moz-appearance: none;
+          appearance: none;
+          background-color: transparent;
+          border: none;
+          padding: 0;
+          height: auto;
+          box-shadow: none;
+          display: inline-block;
+          width: 100%;
+          resize: none;
+          font-size: 14px;
+        }
+
+        input:not(.no-print),
+        textarea:not(.no-print) {
+          content: attr(value) !important;
+          display: block;
+        }
+
+        .print-text {
+          white-space: pre-wrap !important;
+          word-wrap: break-word !important;
+          display: block !important;
+        }
+
+        .action-column {
+          display: none !important;
+        }
+        
+        .text-sm {
+            font-size: 12px;
+        }
+        
+        .text-2xl {
+            font-size: 1.25rem !important;
+        }
+        
+        .text-4xl {
+            font-size: 2rem !important;
+        }
+        
+        /* Table styles for print */
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+        th, td {
+            border: 1px solid #000;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+      }
+
+      .invoice-item:hover {
+        background-color: #fdf2f8;
+      }
+
+      .signature-footer {
+        margin-top: 4rem;
+        display: flex;
+        justify-content: space-between;
+        width: 100%;
+      }
+
+      .signature-block {
+        width: 45%;
+        border-top: 1px solid #000;
+        padding-top: 0.5rem;
+        text-align: center;
+        font-weight: 600;
+        font-size: 0.9rem;
+      }
+      
+      body {
+        font-size: 14px;
+      }
+
+      h1 {
+        font-size: 2.25rem;
+      }
+      h2 {
+        font-size: 1.5rem;
+      }
+      h3 {
+        font-size: 1.125rem;
+      }
+
+      input, textarea, p, td, th, label, button {
+        font-size: 14px;
+      }
+      
+      .text-sm {
+        font-size: 12px;
+      }
+      
+      .signature-block {
+        font-size: 12px;
+      }
+
+      .text-2xl { font-size: 1.5rem; }
+      .text-4xl { font-size: 2.25rem; }
+      .text-lg { font-size: 1.125rem; }
+
+      /* Box for Bill To and Ship To on screen */
+      .bill-to-box, .ship-to-box {
+        border: 1px solid #d1d5db;
+        padding: 1rem;
+        border-radius: 0.5rem;
+      }
+    </style>
+  </head>
+  <body class="bg-pink-50 min-h-screen p-4">
+    <div
+      class="max-w-4xl mx-auto bg-white rounded-xl shadow-lg p-6 invoice-container"
+    >
+      <div class="flex justify-between items-start mb-8">
+        <div class="text-left">
+          <h1 class="text-4xl font-bold text-pink-600 mb-2">
+            Deedapit Bakery &amp; Cafe
+          </h1>
+          <p class="text-gray-600">
+            G-19, Bazaar Rakyat PKPS, Jalan Permai Sejati, Pusat Bandar Putra
+            Permai, 43300 Seri Kembangan, Selangor
+          </p>
+          <p class="text-gray-600">
+            Phone: 011-1751 41636 | Email: deedapit@gmail.com
+          </p>
+        </div>
+        <div class="text-right">
+          <div class="mb-2">
+            <label
+              for="invoiceNumber"
+              class="block text-sm font-medium text-gray-700"
+              >Invoice #</label
+            >
+            <input
+              type="text"
+              id="invoiceNumber"
+              placeholder="INV-(YYMM/XXX)"
+              class="w-36 px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 text-sm"
+            />
+          </div>
+          <div>
+            <label
+              for="invoiceDate"
+              class="block text-sm font-medium text-gray-700"
+              >Date</label
+            >
+            <input
+              type="date"
+              id="invoiceDate"
+              class="w-36 px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 text-sm"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div
+        class="bill-ship-container grid grid-cols-1 md:grid-cols-2 gap-8 mb-8"
+      >
+        <div class="bill-to-box">
+          <h2 class="text-2xl font-semibold text-pink-700 mb-4">Bill To</h2>
+          <div class="space-y-3">
+            <input
+              type="text"
+              id="billToName"
+              placeholder="Customer Name"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
+            />
+            <textarea
+              id="billToAddress"
+              placeholder="Billing Address"
+              rows="3"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
+            ></textarea>
+            <input
+              type="tel"
+              id="billToPhone"
+              placeholder="Phone Number"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
+            />
+          </div>
+        </div>
+
+        <div class="ship-to-box">
+          <h2 class="text-2xl font-semibold text-pink-700 mb-4">Ship To</h2>
+          <div class="space-y-3">
+            <input
+              type="text"
+              id="shipToName"
+              placeholder="Recipient Name"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
+            />
+            <textarea
+              id="shipToAddress"
+              placeholder="Shipping Address"
+              rows="3"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
+            ></textarea>
+            <input
+              type="tel"
+              id="shipToPhone"
+              placeholder="Phone Number"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div class="mb-8">
+        <h2 class="text-2xl font-semibold text-pink-700 mb-4">Order Items</h2>
+        <div class="overflow-x-auto">
+          <table class="w-full">
+            <thead>
+              <tr class="bg-pink-100">
+                <th class="p-3 text-left">Item Description</th>
+                <th class="p-3 text-center">Quantity</th>
+                <th class="p-3 text-right">Unit Price (RM)</th>
+                <th class="p-3 text-right">Total (RM)</th>
+                <th class="p-3 text-center action-column no-print">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="invoiceItems">
+              <tr class="invoice-item border-b">
+                <td class="p-3">
+                  <textarea
+                    placeholder="Item name"
+                    rows="2"
+                    class="w-full px-2 py-1 border border-gray-300 rounded item-description"
+                  ></textarea>
+                </td>
+                <td class="p-3">
+                  <input
+                    type="number"
+                    min="1"
+                    value="1"
+                    class="w-20 px-2 py-1 border border-gray-300 rounded text-center item-quantity"
+                    onchange="calculateTotals()"
+                  />
+                </td>
+                <td class="p-3">
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder="0.00"
+                    class="w-24 px-2 py-1 border border-gray-300 rounded text-right item-price"
+                    onchange="calculateTotals()"
+                  />
+                </td>
+                <td class="p-3 text-right item-total">0.00</td>
+                <td class="p-3 text-center action-column no-print">
+                  <button
+                    onclick="removeItem(this)"
+                    class="text-red-500 hover:text-red-700"
+                  >
+                    Remove
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <button
+          onclick="addItem()"
+          class="mt-4 px-4 py-2 bg-pink-500 text-white rounded-md hover:bg-pink-600 no-print"
+        >
+          Add Item
+        </button>
+      </div>
+
+      <div class="bg-pink-50 p-6 rounded-lg mb-6">
+        <div class="grid grid-cols-2 gap-4 max-w-md ml-auto">
+          <div class="text-right font-semibold">Subtotal (RM):</div>
+          <div class="text-right" id="subtotal">RM 0.00</div>
+
+          <div
+            class="text-right font-semibold text-lg text-pink-700"
+          >
+            Total Amount (RM):
+          </div>
+          <div
+            class="text-right text-lg font-bold text-pink-700"
+            id="total"
+          >
+            RM 0.00
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <h3 class="text-lg font-semibold text-pink-700 mb-2">Payment Terms</h3>
+        <p class="text-gray-600 mb-6">
+          Please make payment within 15 days. Thank you for choosing Deedapit
+          Bakery &amp; Cafe!
+        </p>
+
+        <div class="signature-footer" style="padding-top: 1cm">
+          <div class="signature-block">Authorized By</div>
+          <div class="signature-block">Received By</div>
+        </div>
+      </div>
+
+      <div class="flex gap-4 justify-center no-print mt-8">
+        <button
+          onclick="printInvoice()"
+          class="px-6 py-3 bg-blue-500 text-white rounded-md hover:bg-blue-600 font-semibold"
+        >
+          Print Invoice
+        </button>
+        <button
+          onclick="resetForm()"
+          class="px-6 py-3 bg-gray-500 text-white rounded-md hover:bg-gray-600 font-semibold"
+        >
+          Reset Form
+        </button>
+        <button
+          onclick="window.print()"
+          class="px-6 py-3 bg-green-500 text-white rounded-md hover:bg-green-600 font-semibold"
+        >
+          Print
+        </button>
+      </div>
+    </div>
+    <script>
+      document.getElementById("invoiceDate").valueAsDate = new Date();
+
+      function generateInvoiceNumber() {
+        const now = new Date();
+        const year = now.getFullYear().toString().slice(-2);
+        const month = (now.getMonth() + 1).toString().padStart(2, '0');
+        const randomNum = Math.floor(Math.random() * 1000)
+          .toString()
+          .padStart(3, '0');
+        return `INV-${year}${month}/${randomNum}`;
+      }
+
+      const invoiceInput = document.getElementById("invoiceNumber");
+      if (!invoiceInput.value) {
+        invoiceInput.value = generateInvoiceNumber();
+      }
+
+      function addItem() {
+        const itemsContainer = document.getElementById("invoiceItems");
+        const newItem = document.createElement("tr");
+        newItem.className = "invoice-item border-b";
+        newItem.innerHTML = `
+        <td class="p-3">
+          <textarea
+            placeholder="Item name"
+            rows="2"
+            class="w-full px-2 py-1 border border-gray-300 rounded item-description"
+          ></textarea>
+        </td>
+          <td class="p-3">
+            <input
+              type="number"
+              min="1"
+              value="1"
+              class="w-20 px-2 py-1 border border-gray-300 rounded text-center item-quantity"
+              onchange="calculateTotals()"
+            />
+          </td>
+          <td class="p-3">
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              placeholder="0.00"
+              class="w-24 px-2 py-1 border border-gray-300 rounded text-right item-price"
+              onchange="calculateTotals()"
+            />
+          </td>
+          <td class="p-3 text-right item-total">0.00</td>
+          <td class="p-3 text-center action-column no-print">
+            <button onclick="removeItem(this)" class="text-red-500 hover:text-red-700">Remove</button>
+          </td>
+        </tr>
+      `;
+        itemsContainer.appendChild(newItem);
+      }
+
+      function removeItem(button) {
+        const row = button.closest("tr");
+        if (document.querySelectorAll(".invoice-item").length > 1) {
+          row.remove();
+          calculateTotals();
+        }
+      }
+
+      function calculateTotals() {
+        let subtotal = 0;
+        const items = document.querySelectorAll(".invoice-item");
+        items.forEach((item) => {
+          const quantity =
+            parseFloat(item.querySelector(".item-quantity").value) || 0;
+          const price =
+            parseFloat(item.querySelector(".item-price").value) || 0;
+          const total = quantity * price;
+          item.querySelector(".item-total").textContent = total.toFixed(2);
+          subtotal += total;
+        });
+        const total = subtotal;
+        document.getElementById("subtotal").textContent = "RM " + subtotal.toFixed(2);
+        document.getElementById("total").textContent = "RM " + total.toFixed(2);
+      }
+
+      function resetForm() {
+        if (
+          confirm("Are you sure you want to reset the form? All data will be lost.")
+        ) {
+          document.getElementById("invoiceNumber").value = generateInvoiceNumber();
+          document.getElementById("invoiceDate").valueAsDate = new Date();
+          document.getElementById("billToName").value = "";
+          document.getElementById("billToAddress").value = "";
+          document.getElementById("billToPhone").value = "";
+          document.getElementById("shipToName").value = "";
+          document.getElementById("shipToAddress").value = "";
+          document.getElementById("shipToPhone").value = "";
+          const itemsContainer = document.getElementById("invoiceItems");
+          itemsContainer.innerHTML = `
+        <tr class="invoice-item border-b">
+          <td class="p-3">
+            <textarea
+              placeholder="Item name"
+              rows="2"
+              class="w-full px-2 py-1 border border-gray-300 rounded item-description"
+            ></textarea>
+          </td>
+          <td class="p-3">
+            <input
+              type="number"
+              min="1"
+              value="1"
+              class="w-20 px-2 py-1 border border-gray-300 rounded text-center item-quantity"
+              onchange="calculateTotals()"
+            />
+          </td>
+          <td class="p-3">
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              placeholder="0.00"
+              class="w-24 px-2 py-1 border border-gray-300 rounded text-right item-price"
+              onchange="calculateTotals()"
+            />
+          </td>
+          <td class="p-3 text-right item-total">0.00</td>
+          <td class="p-3 text-center action-column no-print">
+            <button onclick="removeItem(this)" class="text-red-500 hover:text-red-700">Remove</button>
+          </td>
+        </tr>
+      `;
+          calculateTotals();
+        }
+      }
+
+      function printInvoice() {
+        const billToName = document.getElementById("billToName").value;
+        if (!billToName) {
+          alert("Please enter Bill To customer name before printing.");
+          return;
+        }
+        window.print();
+      }
+
+      calculateTotals();
+    </script>
+  </body>
+</html>
