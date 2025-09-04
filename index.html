@@ -1,739 +1,1462 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Deedapit Bakery & Cafe - Invoice</title>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deedapit Bakery POS System (Frontend Only)</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-      body {
-        font-family: 'Inter', sans-serif;
-        background-color: #fff1f2; /* softer pink background */
-      }
-      .modal {
-        display: none;
-        position: fixed;
-        z-index: 1000;
-        left: 0;
-        top: 0;
-        width: 100%;
-        height: 100%;
-        overflow: auto;
-        background-color: rgba(0, 0, 0, 0.4);
-        padding-top: 60px;
-        transition: opacity 0.3s ease;
-      }
-      .modal.show {
-        display: block;
-        opacity: 1;
-      }
-      .modal-content {
-        background-color: #fff;
-        margin: 5% auto;
-        padding: 24px 32px;
-        border-radius: 0.75rem;
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-        max-width: 480px;
-        position: relative;
-      }
-      .close-button {
-        color: #999;
-        position: absolute;
-        top: 12px;
-        right: 16px;
-        font-size: 28px;
-        font-weight: 700;
-        cursor: pointer;
-        transition: color 0.2s ease;
-      }
-      .close-button:hover,
-      .close-button:focus {
-        color: #e11d48; /* pink-600 */
-      }
-      .action-column {
-        width: 100px;
-      }
-      @media print {
-        .no-print {
-          display: none !important;
-        }
         body {
-          margin: 0;
-          padding: 20px;
-          font-size: 14px;
-          background: white !important;
+            font-family: 'Inter', sans-serif;
+            background-color: #f7f3f0;
         }
-        .invoice-container {
-          box-shadow: none !important;
-          border: none !important;
+        .container {
+            max-width: 1200px;
         }
-        .bill-ship-container {
-          display: flex !important;
-          gap: 4rem;
-          border-bottom: 1px solid #000;
-          padding-bottom: 1rem;
+        .active-tab {
+            border-bottom: 2px solid #a855f7;
+            color: #a855f7;
         }
-        .bill-ship-container > div {
-          flex: 1;
+        .scrollable-content {
+            height: calc(100vh - 250px);
+            overflow-y: auto;
         }
-        .signature-footer {
-          margin-top: 4rem !important;
-          display: flex;
-          justify-content: space-between;
-          width: 100%;
-          padding-top: 1cm;
+        /* Custom scrollbar for better UX */
+        .scrollable-content::-webkit-scrollbar,
+        #cart-list::-webkit-scrollbar,
+        #order-details-content::-webkit-scrollbar,
+        #customer-history-content::-webkit-scrollbar {
+            width: 8px;
         }
-        .signature-block {
-          width: 45%;
-          border-top: 1px solid #000;
-          padding-top: 0.5rem;
-          text-align: center;
-          font-weight: 600;
-          font-size: 12px;
+        .scrollable-content::-webkit-scrollbar-track,
+        #cart-list::-webkit-scrollbar-track,
+        #order-details-content::-webkit-scrollbar-track,
+        #customer-history-content::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
         }
-        .bill-to-info,
-        .ship-to-info {
-          display: block !important;
+        .scrollable-content::-webkit-scrollbar-thumb,
+        #cart-list::-webkit-scrollbar-thumb,
+        #order-details-content::-webkit-scrollbar-thumb,
+        #customer-history-content::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 10px;
         }
-        .bill-to-info .name,
-        .ship-to-info .name {
-          font-weight: bold;
+        .scrollable-content::-webkit-scrollbar-thumb:hover,
+        #cart-list::-webkit-scrollbar-thumb:hover,
+        #order-details-content::-webkit-scrollbar-thumb:hover,
+        #customer-history-content::-webkit-scrollbar-thumb:hover {
+            background: #555;
         }
-        .bill-to-info .address,
-        .ship-to-info .address {
-          white-space: pre-wrap;
-        }
-        .text-2xl {
-          font-size: 1.25rem !important;
-        }
-        .text-4xl {
-          font-size: 2rem !important;
-        }
-        table {
-          border-collapse: collapse;
-          width: 100%;
-        }
-        th,
-        td {
-          border: none;
-        }
-        thead tr {
-          border-bottom: 1px solid #000;
-        }
-        tbody {
-          border-top: 1px solid #000;
-        }
-      }
-      .invoice-item:hover {
-        background-color: #fce7f3; /* pink-100 */
-      }
-      .bill-to-box,
-      .ship-to-box {
-        border: 1px dashed #d1d5db;
-        padding: 1rem;
-        border-radius: 0.5rem;
-        min-height: 120px;
-        background-color: #fff0f6; /* very light pink */
-      }
-      textarea:focus,
-      input:focus {
-        outline: none;
-        box-shadow: 0 0 0 3px #f9a8d4; /* pink-300 */
-        border-color: #ec4899; /* pink-500 */
-      }
-      button:focus {
-        outline: 2px solid #ec4899;
-        outline-offset: 2px;
-      }
     </style>
-  </head>
-  <body class="min-h-screen p-4">
-    <div
-      class="max-w-4xl mx-auto bg-white rounded-xl shadow-lg p-8 invoice-container"
-      role="main"
-      aria-label="Invoice form"
-    >
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+    <div class="container bg-white rounded-2xl shadow-xl p-8 m-4">
+        <header class="flex flex-col md:flex-row justify-between items-center mb-6 border-b pb-4">
+            <h1 class="text-3xl font-bold text-gray-800">Deedapit Bakery POS</h1>
+            <div class="mt-4 md:mt-0 flex gap-4">
+                <button id="cashier-btn" class="text-gray-600 hover:text-purple-600 transition-colors duration-200 font-medium pb-2 active-tab">Cashier</button>
+                <button id="admin-btn" class="text-gray-600 hover:text-purple-600 transition-colors duration-200 font-medium pb-2">Admin</button>
+            </div>
+        </header>
 
-      <!-- Header -->
-      <header class="flex flex-col md:flex-row justify-between items-start mb-8 gap-6">
-        <section class="text-left flex-1 min-w-0">
-          <h1 class="text-4xl font-extrabold text-pink-600 mb-2 leading-tight">
-            Deedapit Bakery &amp; Cafe
-          </h1>
-          <address class="not-italic text-gray-600 space-y-0.5 text-sm">
-            <p>G-19, Bazaar Rakyat PKPS,</p>
-            <p>Jalan Permai Sejati,</p>
-            <p>Pusat Bandar Putra Permai,</p>
-            <p>43300 Seri Kembangan, Selangor</p>
-            <p>Phone: <a href="tel:011175141636" class="underline hover:text-pink-700">011-1751 41636</a> | Email: <a href="mailto:deedapit@gmail.com" class="underline hover:text-pink-700">deedapit@gmail.com</a></p>
-            <p>Registration Number: AS0474606-X</p>
-          </address>
-        </section>
-        <section class="text-right flex-shrink-0 space-y-4 min-w-[160px]">
-          <div>
-            <label
-              for="invoiceNumber"
-              class="block text-sm font-semibold text-gray-700 mb-1"
-              >Invoice #</label
-            >
-            <input
-              type="text"
-              id="invoiceNumber"
-              placeholder="INV-(YYMM/XXX)"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 text-sm"
-              aria-describedby="invoiceNumberHelp"
-            />
-            <p id="invoiceNumberHelp" class="sr-only">Enter invoice number</p>
-          </div>
-          <div>
-            <label
-              for="invoiceDate"
-              class="block text-sm font-semibold text-gray-700 mb-1"
-              >Date</label
-            >
-            <input
-              type="date"
-              id="invoiceDate"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 text-sm"
-              aria-describedby="invoiceDateHelp"
-            />
-            <p id="invoiceDateHelp" class="sr-only">Select invoice date</p>
-          </div>
-        </section>
-      </header>
+        <!-- Cashier Module -->
+        <div id="cashier-view" class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- Menu and Order Panel -->
+            <div class="md:col-span-2 bg-gray-50 rounded-lg p-6 shadow-md">
+                <h2 class="text-2xl font-semibold text-gray-800 mb-4">Order Taking</h2>
+                <div class="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-6" id="menu-cards">
+                    <!-- Menu Items will be rendered here -->
+                </div>
+            </div>
 
-      <!-- Bill To & Ship To sections -->
-      <section
-        class="bill-ship-container grid grid-cols-1 md:grid-cols-2 gap-6 mb-6"
-        aria-label="Billing and Shipping Information"
-      >
-        <article class="bill-to-box" aria-labelledby="billToHeading">
-          <div class="flex justify-between items-center mb-2">
-            <h2 id="billToHeading" class="text-2xl font-semibold text-pink-700">
-              Bill To
-            </h2>
-            <button
-              id="editBillToBtn"
-              class="px-3 py-1 bg-pink-500 text-white text-sm rounded-md hover:bg-pink-600 no-print focus:ring-2 focus:ring-pink-400 focus:ring-offset-1"
-              aria-haspopup="dialog"
-              aria-controls="billToModal"
-              aria-expanded="false"
-            >
-              Edit
-            </button>
-          </div>
-          <address class="bill-to-info not-italic space-y-1 text-gray-700 min-h-[5rem]">
-            <p class="name font-semibold" id="billToNameDisplay" aria-live="polite"></p>
-            <p class="address whitespace-pre-wrap" id="billToAddressDisplay" aria-live="polite"></p>
-            <p class="phone" id="billToPhoneDisplay" aria-live="polite"></p>
-          </address>
-        </article>
+            <!-- Cart and Pre-order Panel -->
+            <div class="md:col-span-1 bg-white rounded-lg p-6 shadow-md border border-gray-200">
+                <h2 class="text-2xl font-semibold text-gray-800 mb-4">Cart</h2>
+                <div id="cart-list" class="space-y-4 max-h-60 overflow-y-auto mb-4">
+                    <!-- Cart items will be rendered here -->
+                </div>
+                <div class="text-lg font-bold text-gray-800 mt-4 mb-4">
+                    Total: <span id="cart-total">RM 0.00</span>
+                </div>
 
-        <article class="ship-to-box" aria-labelledby="shipToHeading">
-          <div class="flex justify-between items-center mb-2">
-            <h2 id="shipToHeading" class="text-2xl font-semibold text-pink-700">
-              Ship To
-            </h2>
-            <button
-              id="editShipToBtn"
-              class="px-3 py-1 bg-pink-500 text-white text-sm rounded-md hover:bg-pink-600 no-print focus:ring-2 focus:ring-pink-400 focus:ring-offset-1"
-              aria-haspopup="dialog"
-              aria-controls="shipToModal"
-              aria-expanded="false"
-            >
-              Edit
-            </button>
-          </div>
-          <address class="ship-to-info not-italic space-y-1 text-gray-700 min-h-[5rem]">
-            <p class="name font-semibold" id="shipToNameDisplay" aria-live="polite"></p>
-            <p class="address whitespace-pre-wrap" id="shipToAddressDisplay" aria-live="polite"></p>
-            <p class="phone" id="shipToPhoneDisplay" aria-live="polite"></p>
-          </address>
-        </article>
-      </section>
+                <div class="mt-4">
+                    <label for="order-type" class="block text-sm font-medium text-gray-700">Order Type</label>
+                    <select id="order-type" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500">
+                        <option value="walk-in">Walk-in</option>
+                        <option value="online">Online</option>
+                    </select>
+                </div>
 
-      <!-- Order Items -->
-      <section aria-label="Order Items" class="mb-8">
-        <h2 class="text-2xl font-semibold text-pink-700 mb-2">Order Items</h2>
-        <div class="overflow-x-auto rounded-lg border border-pink-300 shadow-sm">
-          <table class="w-full table-fixed border-collapse" role="grid" aria-describedby="orderItemsDesc">
-            <caption id="orderItemsDesc" class="sr-only">List of items in the invoice</caption>
-            <thead>
-              <tr class="bg-pink-100">
-                <th scope="col" class="p-3 text-left w-[50%]">Item Description</th>
-                <th scope="col" class="p-3 text-center w-[12%]">Quantity</th>
-                <th scope="col" class="p-3 text-right w-[18%]">Unit Price (RM)</th>
-                <th scope="col" class="p-3 text-right w-[18%]">Total (RM)</th>
-                <th scope="col" class="p-3 text-center action-column no-print" aria-label="Actions">Actions</th>
-              </tr>
-            </thead>
-            <tbody id="invoiceItems" role="rowgroup">
-              <tr class="invoice-item border-b" role="row">
-                <td class="p-3" role="gridcell">
-                  <textarea
-                    placeholder="Item name"
-                    rows="2"
-                    class="w-full px-2 py-1 border border-gray-300 rounded item-description resize-none focus:ring-2 focus:ring-pink-400 focus:border-pink-500"
-                    aria-label="Item description"
-                  ></textarea>
-                </td>
-                <td class="p-3" role="gridcell">
-                  <input
-                    type="number"
-                    min="1"
-                    value="1"
-                    class="w-20 px-2 py-1 border border-gray-300 rounded text-center item-quantity focus:ring-2 focus:ring-pink-400 focus:border-pink-500"
-                    onchange="calculateTotals()"
-                    aria-label="Quantity"
-                  />
-                </td>
-                <td class="p-3" role="gridcell">
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    placeholder="0.00"
-                    class="w-24 px-2 py-1 border border-gray-300 rounded text-right item-price focus:ring-2 focus:ring-pink-400 focus:border-pink-500"
-                    onchange="calculateTotals()"
-                    aria-label="Unit price in ringgit"
-                  />
-                </td>
-                <td class="p-3 text-right item-total font-semibold" role="gridcell" aria-live="polite" aria-atomic="true">0.00</td>
-                <td class="p-3 text-center action-column no-print" role="gridcell">
-                  <button
-                    onclick="removeItem(this)"
-                    class="text-red-600 hover:text-red-800 focus:outline-none focus:ring-2 focus:ring-red-400 rounded"
-                    aria-label="Remove item"
-                    title="Remove item"
-                  >
-                    Remove
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+                <div class="mt-4">
+                    <label for="customer-contact" class="block text-sm font-medium text-gray-700">Customer Contact (Optional)</label>
+                    <input type="text" id="customer-contact-input" placeholder="e.g. 0123456789" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500">
+                </div>
+                
+                <div class="mt-4">
+                    <label for="customer-name" class="block text-sm font-medium text-gray-700">Customer Name (Optional)</label>
+                    <input type="text" id="customer-name-input" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500">
+                </div>
+
+                <div class="mt-4 flex items-center gap-2">
+                    <input type="checkbox" id="pre-order-toggle" class="rounded text-purple-600 focus:ring-purple-500">
+                    <label for="pre-order-toggle" class="text-sm font-medium text-gray-700">Pre-Order</label>
+                </div>
+
+                <div id="pre-order-date-time" class="mt-4 hidden">
+                    <label for="pre-order-date" class="block text-sm font-medium text-gray-700">Pre-Order Date</label>
+                    <input type="date" id="pre-order-date" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500">
+                    <label for="pre-order-time" class="block text-sm font-medium text-gray-700 mt-2">Pre-Order Time</label>
+                    <input type="time" id="pre-order-time" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500">
+                    <label for="deposit-input" class="block text-sm font-medium text-gray-700 mt-2">Deposit (RM)</label>
+                    <input type="number" step="0.01" id="deposit-input" placeholder="e.g. 5.00" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500">
+                </div>
+
+                <div class="flex gap-4 mt-6">
+                    <button id="save-order-btn" class="flex-1 bg-purple-600 text-white font-bold py-3 px-4 rounded-md shadow-lg hover:bg-purple-700 transition-colors duration-200">
+                        <span id="save-btn-text">Save Order</span>
+                    </button>
+                    <button id="clear-cart-btn" class="bg-gray-200 text-gray-700 font-bold py-3 px-4 rounded-md shadow-lg hover:bg-gray-300 transition-colors duration-200">Clear</button>
+                </div>
+                <button id="view-calendar-btn" class="mt-4 w-full bg-blue-500 text-white font-bold py-3 px-4 rounded-md shadow-lg hover:bg-blue-600 transition-colors duration-200">View Pre-orders</button>
+            </div>
         </div>
-        <button
-          onclick="addItem()"
-          class="mt-4 px-5 py-2 bg-pink-600 text-white rounded-md hover:bg-pink-700 no-print focus:ring-4 focus:ring-pink-300"
-          aria-label="Add new item"
-        >
-          Add Item
-        </button>
-      </section>
 
-      <!-- Totals -->
-      <section
-        class="bg-pink-50 p-6 rounded-lg mb-6 max-w-md ml-auto"
-        aria-label="Invoice totals"
-      >
-        <div class="grid grid-cols-2 gap-4">
-          <div class="text-right font-semibold text-gray-700">Subtotal (RM):</div>
-          <div class="text-right font-mono" id="subtotal" aria-live="polite" aria-atomic="true">RM 0.00</div>
-          <div class="text-right font-semibold text-lg text-pink-700">Total Amount (RM):</div>
-          <div class="text-right text-lg font-extrabold text-pink-700" id="total" aria-live="polite" aria-atomic="true">RM 0.00</div>
+        <!-- Admin Module -->
+        <div id="admin-view" class="hidden">
+            <h2 class="text-2xl font-semibold text-gray-800 mb-4">Admin Dashboard</h2>
+            <div class="flex border-b border-gray-200 mb-6">
+                <button id="sales-tab" class="py-2 px-4 font-medium text-gray-600 hover:text-purple-600 transition-colors duration-200 active-tab">Sales Records</button>
+                <button id="expenses-tab" class="py-2 px-4 font-medium text-gray-600 hover:text-purple-600 transition-colors duration-200">Manage Expenses</button>
+                <button id="menu-tab" class="py-2 px-4 font-medium text-gray-600 hover:text-purple-600 transition-colors duration-200">Manage Menu</button>
+                <button id="customers-tab" class="py-2 px-4 font-medium text-gray-600 hover:text-purple-600 transition-colors duration-200">Manage Customers</button>
+            </div>
+
+            <!-- Sales Records Tab -->
+            <div id="sales-content" class="scrollable-content">
+                <div class="flex items-center gap-4 mb-4">
+                    <input type="date" id="sales-date-filter" class="rounded-md border-gray-300 shadow-sm">
+                    <select id="sales-cashier-filter" class="rounded-md border-gray-300 shadow-sm">
+                        <option value="">All Cashiers</option>
+                    </select>
+                    <select id="sales-type-filter" class="rounded-md border-gray-300 shadow-sm">
+                        <option value="">All Types</option>
+                        <option value="walk-in">Walk-in</option>
+                        <option value="online">Online</option>
+                    </select>
+                    <button id="export-sales-btn" class="bg-green-500 text-white font-bold py-2 px-4 rounded-md shadow-sm hover:bg-green-600 transition-colors duration-200">Export Sales</button>
+                </div>
+                <table class="min-w-full bg-white rounded-lg shadow-md overflow-hidden">
+                    <thead class="bg-gray-50 border-b">
+                        <tr>
+                            <th class="py-3 px-6 text-left text-sm font-semibold text-gray-600">Order ID</th>
+                            <th class="py-3 px-6 text-left text-sm font-semibold text-gray-600">Date & Time</th>
+                            <th class="py-3 px-6 text-left text-sm font-semibold text-gray-600">Total</th>
+                            <th class="py-3 px-6 text-left text-sm font-semibold text-gray-600">Type</th>
+                            <th class="py-3 px-6 text-left text-sm font-semibold text-gray-600">Customer</th>
+                            <th class="py-3 px-6 text-left text-sm font-semibold text-gray-600">Cashier</th>
+                            <th class="py-3 px-6 text-left text-sm font-semibold text-gray-600">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="sales-table-body">
+                        <!-- Sales records will be rendered here -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Manage Expenses Tab -->
+            <div id="expenses-content" class="hidden">
+                <div class="bg-gray-50 rounded-lg p-6 mb-6 shadow-md">
+                    <h3 class="text-xl font-semibold text-gray-800 mb-4">Add New Expense</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <input type="text" id="expense-name-input" placeholder="Expense Item Name" class="col-span-2 rounded-md border-gray-300 shadow-sm focus:border-purple-500">
+                        <input type="number" id="expense-price-input" placeholder="Price (RM)" class="rounded-md border-gray-300 shadow-sm focus:border-purple-500">
+                        <input type="number" id="expense-unit-input" placeholder="Units" class="rounded-md border-gray-300 shadow-sm focus:border-purple-500">
+                        <button id="add-expense-btn" class="bg-purple-600 text-white font-bold py-2 px-4 rounded-md shadow-sm hover:bg-purple-700 transition-colors duration-200">Add Expense</button>
+                    </div>
+                </div>
+                <h3 class="text-xl font-semibold text-gray-800 mb-4">Expense Records</h3>
+                <div class="flex justify-end mb-4">
+                    <button id="export-expenses-btn" class="bg-green-500 text-white font-bold py-2 px-4 rounded-md shadow-sm hover:bg-green-600 transition-colors duration-200">Export Expenses</button>
+                </div>
+                <table class="min-w-full bg-white rounded-lg shadow-md overflow-hidden">
+                    <thead class="bg-gray-50 border-b">
+                        <tr>
+                            <th class="py-3 px-6 text-left text-sm font-semibold text-gray-600">Date</th>
+                            <th class="py-3 px-6 text-left text-sm font-semibold text-gray-600">Name</th>
+                            <th class="py-3 px-6 text-left text-sm font-semibold text-gray-600">Price (RM)</th>
+                            <th class="py-3 px-6 text-left text-sm font-semibold text-gray-600">Units</th>
+                            <th class="py-3 px-6 text-left text-sm font-semibold text-gray-600">Total (RM)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="expenses-table-body">
+                        <!-- Expenses will be rendered here -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Manage Menu Tab -->
+            <div id="menu-content" class="hidden">
+                <div class="bg-gray-50 rounded-lg p-6 mb-6 shadow-md">
+                    <h3 class="text-xl font-semibold text-gray-800 mb-4">Add/Edit Menu Item</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <input type="text" id="menu-name-input" placeholder="Item Name" class="col-span-1 rounded-md border-gray-300 shadow-sm focus:border-purple-500">
+                        <input type="number" id="menu-price-input" placeholder="Price (RM)" class="col-span-1 rounded-md border-gray-300 shadow-sm focus:border-purple-500">
+                        <textarea id="menu-description-input" placeholder="Description (optional)" class="col-span-1 rounded-md border-gray-300 shadow-sm focus:border-purple-500"></textarea>
+                    </div>
+                    <button id="add-menu-item-btn" class="mt-4 bg-purple-600 text-white font-bold py-2 px-4 rounded-md shadow-sm hover:bg-purple-700 transition-colors duration-200">Save Item</button>
+                </div>
+                <h3 class="text-xl font-semibold text-gray-800 mb-4">Current Menu Items</h3>
+                <table class="min-w-full bg-white rounded-lg shadow-md overflow-hidden">
+                    <thead class="bg-gray-50 border-b">
+                        <tr>
+                            <th class="py-3 px-6 text-left text-sm font-semibold text-gray-600">Name</th>
+                            <th class="py-3 px-6 text-left text-sm font-semibold text-gray-600">Price (RM)</th>
+                            <th class="py-3 px-6 text-left text-sm font-semibold text-gray-600">Description</th>
+                            <th class="py-3 px-6 text-left text-sm font-semibold text-gray-600">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="menu-table-body">
+                        <!-- Menu items will be rendered here -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Manage Customers Tab -->
+            <div id="customers-content" class="hidden scrollable-content">
+                <h3 class="text-xl font-semibold text-gray-800 mb-4">Customer Records</h3>
+                <table class="min-w-full bg-white rounded-lg shadow-md overflow-hidden">
+                    <thead class="bg-gray-50 border-b">
+                        <tr>
+                            <th class="py-3 px-6 text-left text-sm font-semibold text-gray-600">Name</th>
+                            <th class="py-3 px-6 text-left text-sm font-semibold text-gray-600">Contact</th>
+                            <th class="py-3 px-6 text-left text-sm font-semibold text-gray-600">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="customers-table-body">
+                        <!-- Customer records will be rendered here -->
+                    </tbody>
+                </table>
+            </div>
         </div>
-      </section>
 
-      <!-- Payment & Signature -->
-      <section aria-label="Payment terms and signature" class="mb-8">
-        <h3 class="text-lg font-semibold text-pink-700 mb-2">Payment Terms</h3>
-        <p class="text-gray-700 mb-1">
-          Please make payment within 15 days. Thank you for choosing Deedapit Bakery &amp; Cafe!
-        </p>
-        <p class="text-gray-700 mb-1">
-          Please make payment to Deedapit Bakery &amp; Cafe.
-        </p>
-        <p class="text-gray-700 mb-6 font-mono">Maybank 5621 4281 5021</p>
-        <div class="signature-footer flex justify-between w-full max-w-4xl mx-auto" style="padding-top: 1cm;">
-          <div class="signature-block border-t border-gray-900 pt-2 text-center font-semibold text-sm select-none" aria-label="Authorized By signature line">Authorized By</div>
-          <div class="signature-block border-t border-gray-900 pt-2 text-center font-semibold text-sm select-none" aria-label="Received By signature line">Received By</div>
+        <!-- Calendar Modal -->
+        <div id="calendar-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden items-center justify-center p-4">
+            <div class="bg-white rounded-lg p-8 shadow-2xl max-w-2xl w-full">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-2xl font-semibold">Pre-Order Calendar</h3>
+                    <button id="close-calendar-modal" class="text-gray-500 hover:text-gray-800 font-bold text-2xl">&times;</button>
+                </div>
+                <div class="grid grid-cols-7 text-center font-bold text-gray-700 mb-2">
+                    <span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span>
+                </div>
+                <div id="calendar-grid" class="grid grid-cols-7 gap-1 text-center">
+                    <!-- Calendar days will be rendered here -->
+                </div>
+                <div id="pre-order-details" class="mt-6 border-t pt-4">
+                    <h4 class="text-xl font-semibold mb-2" id="pre-order-details-title">Pre-orders for:</h4>
+                    <ul id="pre-order-list" class="space-y-2">
+                        <!-- Pre-orders for selected day will be rendered here -->
+                    </ul>
+                </div>
+            </div>
         </div>
-      </section>
-
-      <!-- Action buttons -->
-      <nav class="flex gap-4 justify-center no-print mt-8" aria-label="Form actions">
-        <button
-          onclick="printInvoice()"
-          class="px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-semibold focus:ring-4 focus:ring-blue-300"
-          aria-label="Print Invoice"
-        >
-          Print Invoice
-        </button>
-        <button
-          onclick="resetForm()"
-          class="px-6 py-3 bg-gray-600 text-white rounded-md hover:bg-gray-700 font-semibold focus:ring-4 focus:ring-gray-400"
-          aria-label="Reset Form"
-        >
-          Reset Form
-        </button>
-      </nav>
-    </div>
-
-    <!-- Modals -->
-    <div id="billToModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="billToModalTitle" aria-hidden="true">
-      <div class="modal-content">
-        <button type="button" class="close-button" aria-label="Close">&times;</button>
-        <h2 id="billToModalTitle" class="text-xl font-bold mb-4 text-pink-700">Edit Billing Information</h2>
-        <form id="billToForm" onsubmit="return false;">
-          <div class="mb-4">
-            <label for="billToNameInput" class="block text-gray-700 text-sm font-semibold mb-1">Name</label>
-            <input
-              id="billToNameInput"
-              type="text"
-              placeholder="Customer Name"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-pink-400 focus:border-pink-500"
-              autocomplete="name"
-              required
-            />
-          </div>
-          <div class="mb-4">
-            <label for="billToAddressInput" class="block text-gray-700 text-sm font-semibold mb-1">Address</label>
-            <textarea
-              id="billToAddressInput"
-              rows="3"
-              placeholder="Billing Address"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-pink-400 focus:border-pink-500 resize-none"
-              required
-            ></textarea>
-          </div>
-          <div class="mb-6">
-            <label for="billToPhoneInput" class="block text-gray-700 text-sm font-semibold mb-1">Phone Number</label>
-            <input
-              id="billToPhoneInput"
-              type="tel"
-              placeholder="Phone Number"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-pink-400 focus:border-pink-500"
-              autocomplete="tel"
-                            pattern="[\d\s\-\+\(\)]*"
-              title="Enter a valid phone number"
-              required
-            />
-          </div>
-          <div class="flex items-center justify-end">
-            <button
-              id="saveBillToBtn"
-              type="submit"
-              class="bg-pink-500 hover:bg-pink-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-            >
-              Save
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-
-    <div id="shipToModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="shipToModalTitle" aria-hidden="true">
-      <div class="modal-content">
-        <button type="button" class="close-button" aria-label="Close">&times;</button>
-        <h2 id="shipToModalTitle" class="text-xl font-bold mb-4 text-pink-700">Edit Shipping Information</h2>
-        <form id="shipToForm" onsubmit="return false;">
-          <div class="mb-4">
-            <label for="shipToNameInput" class="block text-gray-700 text-sm font-semibold mb-1">Name</label>
-            <input
-              id="shipToNameInput"
-              type="text"
-              placeholder="Recipient Name"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-pink-400 focus:border-pink-500"
-              autocomplete="name"
-              required
-            />
-          </div>
-          <div class="mb-4">
-            <label for="shipToAddressInput" class="block text-gray-700 text-sm font-semibold mb-1">Address</label>
-            <textarea
-              id="shipToAddressInput"
-              rows="3"
-              placeholder="Shipping Address"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-pink-400 focus:border-pink-500 resize-none"
-              required
-            ></textarea>
-          </div>
-          <div class="mb-6">
-            <label for="shipToPhoneInput" class="block text-gray-700 text-sm font-semibold mb-1">Phone Number</label>
-            <input
-              id="shipToPhoneInput"
-              type="tel"
-              placeholder="Phone Number"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-pink-400 focus:border-pink-500"
-              autocomplete="tel"
-              pattern="[\d\s\-\+\(\)]*"
-              title="Enter a valid phone number"
-              required
-            />
-          </div>
-          <div class="flex items-center justify-end">
-            <button
-              id="saveShipToBtn"
-              type="submit"
-              class="bg-pink-500 hover:bg-pink-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-            >
-              Save
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-
-    <!-- Custom Alert Modal -->
-    <div id="customAlert" class="modal" role="alertdialog" aria-modal="true" aria-labelledby="alertMessage" aria-hidden="true">
-      <div class="modal-content text-center">
-        <h3 id="alertMessage" class="text-xl font-bold mb-4"></h3>
-        <button id="alertOkBtn" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:ring-2 focus:ring-blue-400">
-          OK
-        </button>
-      </div>
-    </div>
-
-    <!-- Custom Confirm Modal -->
-    <div id="customConfirm" class="modal" role="dialog" aria-modal="true" aria-labelledby="confirmMessage" aria-hidden="true">
-      <div class="modal-content text-center">
-        <h3 id="confirmMessage" class="text-xl font-bold mb-4"></h3>
-        <div class="flex justify-center gap-4">
-          <button id="confirmOkBtn" class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:ring-2 focus:ring-red-400">
-            Reset
-          </button>
-          <button id="confirmCancelBtn" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:ring-2 focus:ring-gray-400">
-            Cancel
-          </button>
+        
+        <!-- Generic Modal for User Feedback and Actions -->
+        <div id="generic-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden items-center justify-center p-4 z-50">
+            <div class="bg-white rounded-lg p-8 shadow-2xl max-w-sm w-full text-center">
+                <p id="modal-message" class="text-lg font-medium text-gray-800 mb-4"></p>
+                <div id="modal-actions" class="flex justify-center gap-4">
+                    <button id="modal-cancel-btn" class="bg-gray-200 text-gray-700 font-bold py-2 px-4 rounded-md hover:bg-gray-300 transition-colors duration-200 hidden">Cancel</button>
+                    <button id="modal-confirm-btn" class="bg-purple-600 text-white font-bold py-2 px-4 rounded-md hover:bg-purple-700 transition-colors duration-200">OK</button>
+                </div>
+            </div>
         </div>
-      </div>
+        
+        <!-- Custom Order Modal -->
+        <div id="custom-order-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden items-center justify-center p-4 z-50">
+            <div class="bg-white rounded-lg p-8 shadow-2xl max-w-sm w-full">
+                <h3 class="text-2xl font-semibold mb-4 text-gray-800">Add Custom Item</h3>
+                <div class="space-y-4">
+                    <div>
+                        <label for="custom-name-input" class="block text-sm font-medium text-gray-700">Item Name</label>
+                        <input type="text" id="custom-name-input" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500" required>
+                    </div>
+                    <div>
+                        <label for="custom-price-input" class="block text-sm font-medium text-gray-700">Price (RM)</label>
+                        <input type="number" step="0.01" id="custom-price-input" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500" required>
+                    </div>
+                    <div>
+                        <label for="custom-remarks-input" class="block text-sm font-medium text-gray-700">Remarks (Optional)</label>
+                        <textarea id="custom-remarks-input" rows="2" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500"></textarea>
+                    </div>
+                </div>
+                <div class="flex justify-end gap-4 mt-6">
+                    <button id="cancel-custom-order" class="bg-gray-200 text-gray-700 font-bold py-2 px-4 rounded-md hover:bg-gray-300">Cancel</button>
+                    <button id="add-custom-item-btn" class="bg-purple-600 text-white font-bold py-2 px-4 rounded-md hover:bg-purple-700">Add to Cart</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Edit/Update Modal -->
+        <div id="edit-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden items-center justify-center p-4 z-50">
+            <div class="bg-white rounded-lg p-8 shadow-2xl max-w-sm w-full">
+                <h3 id="edit-modal-title" class="text-2xl font-semibold mb-4 text-gray-800">Edit Item</h3>
+                <div class="space-y-4">
+                    <div id="edit-name-container">
+                        <label for="edit-name-input" class="block text-sm font-medium text-gray-700">Name</label>
+                        <input type="text" id="edit-name-input" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500">
+                    </div>
+                    <div id="edit-contact-container">
+                        <label for="edit-contact-input" class="block text-sm font-medium text-gray-700">Contact</label>
+                        <input type="text" id="edit-contact-input" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500">
+                    </div>
+                    <div id="edit-price-container">
+                        <label for="edit-price-input" class="block text-sm font-medium text-gray-700">Price (RM)</label>
+                        <input type="number" step="0.01" id="edit-price-input" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500">
+                    </div>
+                    <div id="edit-description-container">
+                        <label for="edit-description-input" class="block text-sm font-medium text-gray-700">Description</label>
+                        <textarea id="edit-description-input" rows="2" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500"></textarea>
+                    </div>
+                </div>
+                <div class="flex justify-end gap-4 mt-6">
+                    <button id="cancel-edit-btn" class="bg-gray-200 text-gray-700 font-bold py-2 px-4 rounded-md hover:bg-gray-300">Cancel</button>
+                    <button id="save-edit-btn" class="bg-purple-600 text-white font-bold py-2 px-4 rounded-md hover:bg-purple-700">Save</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Order Details Modal -->
+        <div id="order-details-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden items-center justify-center p-4 z-50">
+            <div class="bg-white rounded-lg p-8 shadow-2xl max-w-lg w-full">
+                <div class="flex justify-between items-center mb-4 border-b pb-2">
+                    <h3 class="text-2xl font-semibold">Order Details</h3>
+                    <button id="close-order-details-modal" class="text-gray-500 hover:text-gray-800 font-bold text-2xl">&times;</button>
+                </div>
+                <div id="order-details-content" class="space-y-2 max-h-96 overflow-y-auto">
+                    <!-- Order details and items will be rendered here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Customer History Modal -->
+        <div id="customer-history-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden items-center justify-center p-4 z-50">
+            <div class="bg-white rounded-lg p-8 shadow-2xl max-w-xl w-full">
+                <div class="flex justify-between items-center mb-4 border-b pb-2">
+                    <h3 class="text-2xl font-semibold">Customer Purchase History</h3>
+                    <button id="close-customer-history-modal" class="text-gray-500 hover:text-gray-800 font-bold text-2xl">&times;</button>
+                </div>
+                <div id="customer-history-content" class="space-y-4 max-h-96 overflow-y-auto">
+                    <!-- Customer history will be rendered here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Edit Pre-order Modal -->
+        <div id="edit-preorder-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden items-center justify-center p-4 z-50">
+            <div class="bg-white rounded-lg p-8 shadow-2xl max-w-sm w-full">
+                <h3 class="text-2xl font-semibold mb-4 text-gray-800">Edit Pre-order Date & Time</h3>
+                <div class="space-y-4">
+                    <div>
+                        <label for="edit-preorder-date" class="block text-sm font-medium text-gray-700">New Pickup Date</label>
+                        <input type="date" id="edit-preorder-date" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500">
+                    </div>
+                    <div>
+                        <label for="edit-preorder-time" class="block text-sm font-medium text-gray-700">New Pickup Time</label>
+                        <input type="time" id="edit-preorder-time" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500">
+                    </div>
+                </div>
+                <div class="flex justify-end gap-4 mt-6">
+                    <button id="cancel-preorder-edit-btn" class="bg-gray-200 text-gray-700 font-bold py-2 px-4 rounded-md hover:bg-gray-300">Cancel</button>
+                    <button id="save-preorder-edit-btn" class="bg-purple-600 text-white font-bold py-2 px-4 rounded-md hover:bg-purple-700">Save</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
-      // Modal helper functions
-      function openModal(modal) {
-        modal.classList.add('show');
-        modal.setAttribute('aria-hidden', 'false');
-        // Focus first focusable element inside modal
-        const focusable = modal.querySelector('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
-        if (focusable) focusable.focus();
-      }
-      function closeModal(modal) {
-        modal.classList.remove('show');
-        modal.setAttribute('aria-hidden', 'true');
-      }
+        // In-memory data storage (will not persist across page reloads)
+        let cart = [];
+        let menuItems = [
+            { id: 'm1', name: 'Croissant', price: 5.50, description: 'Flaky, buttery pastry' },
+            { id: 'm2', name: 'Pain au Chocolat', price: 6.00, description: 'Croissant with chocolate' },
+            { id: 'm3', name: 'Blueberry Muffin', price: 4.80, description: 'Soft muffin with blueberries' },
+            { id: 'm4', name: 'Cinnamon Roll', price: 5.20, description: 'Sweet roll with cinnamon' },
+            { id: 'm5', name: 'Sourdough Loaf', price: 12.00, description: 'Artisan sourdough bread' },
+            { id: 'm6', name: 'Baguette', price: 4.00, description: 'Classic French bread' },
+            { id: 'm7', name: 'Cheese Danish', price: 5.80, description: 'Pastry with cream cheese' },
+            { id: 'm8', name: 'Almond Croissant', price: 6.50, description: 'Croissant with almond filling' },
+            { id: 'm9', name: 'Chocolate Chip Cookie', price: 3.00, description: 'Classic chocolate chip' },
+            { id: 'm10', name: 'Red Velvet Cupcake', price: 4.50, description: 'Rich red velvet cupcake' },
+            { id: 'm11', name: 'Espresso', price: 8.00, description: 'Strong coffee shot' },
+            { id: 'm12', name: 'Latte', price: 10.00, description: 'Coffee with steamed milk' },
+        ];
+        let salesRecords = [];
+        let expensesRecords = [];
+        let preOrderRecords = [];
+        let customerRecords = [];
+        let currentUserId = 'mock_cashier_id_123'; // Mock user ID for frontend-only
 
-      // Close buttons
-      document.querySelectorAll('.close-button').forEach(btn => {
-        btn.addEventListener('click', () => {
-          closeModal(btn.closest('.modal'));
-        });
-      });
+        // UI Elements
+        const cashierBtn = document.getElementById('cashier-btn');
+        const adminBtn = document.getElementById('admin-btn');
+        const cashierView = document.getElementById('cashier-view');
+        const adminView = document.getElementById('admin-view');
+        const menuCards = document.getElementById('menu-cards');
+        const cartList = document.getElementById('cart-list');
+        const cartTotal = document.getElementById('cart-total');
+        const preOrderToggle = document.getElementById('pre-order-toggle');
+        const preOrderDateTime = document.getElementById('pre-order-date-time');
+        const preOrderDateInput = document.getElementById('pre-order-date');
+        const preOrderTimeInput = document.getElementById('pre-order-time');
+        const depositInput = document.getElementById('deposit-input');
+        const saveOrderBtn = document.getElementById('save-order-btn');
+        const clearCartBtn = document.getElementById('clear-cart-btn');
+        const orderTypeSelect = document.getElementById('order-type');
+        const customerNameInput = document.getElementById('customer-name-input');
+        const customerContactInput = document.getElementById('customer-contact-input');
+        const viewCalendarBtn = document.getElementById('view-calendar-btn');
 
-      // Close modal on outside click
-      window.addEventListener('click', e => {
-        document.querySelectorAll('.modal.show').forEach(modal => {
-          if (e.target === modal) closeModal(modal);
-        });
-      });
+        const salesTab = document.getElementById('sales-tab');
+        const expensesTab = document.getElementById('expenses-tab');
+        const menuTab = document.getElementById('menu-tab');
+        const customersTab = document.getElementById('customers-tab');
+        const salesContent = document.getElementById('sales-content');
+        const expensesContent = document.getElementById('expenses-content');
+        const menuContent = document.getElementById('menu-content');
+        const customersContent = document.getElementById('customers-content');
+        const salesTableBody = document.getElementById('sales-table-body');
+        const expensesTableBody = document.getElementById('expenses-table-body');
+        const menuTableBody = document.getElementById('menu-table-body');
+        const customersTableBody = document.getElementById('customers-table-body');
+        const salesDateFilter = document.getElementById('sales-date-filter');
+        const salesCashierFilter = document.getElementById('sales-cashier-filter');
+        const salesTypeFilter = document.getElementById('sales-type-filter');
+        const exportSalesBtn = document.getElementById('export-sales-btn');
+        const expenseNameInput = document.getElementById('expense-name-input');
+        const expensePriceInput = document.getElementById('expense-price-input');
+        const expenseUnitInput = document.getElementById('expense-unit-input');
+        const addExpenseBtn = document.getElementById('add-expense-btn');
+        const exportExpensesBtn = document.getElementById('export-expenses-btn');
+        const menuNameInput = document.getElementById('menu-name-input');
+        const menuPriceInput = document.getElementById('menu-price-input');
+        const menuDescriptionInput = document.getElementById('menu-description-input');
+        const addMenuItemBtn = document.getElementById('add-menu-item-btn');
 
-      // Bill To modal open/save
-      const billToModal = document.getElementById('billToModal');
-      const editBillToBtn = document.getElementById('editBillToBtn');
-      const billToForm = document.getElementById('billToForm');
-      editBillToBtn.addEventListener('click', () => {
-        document.getElementById('billToNameInput').value = document.getElementById('billToNameDisplay').textContent;
-        document.getElementById('billToAddressInput').value = document.getElementById('billToAddressDisplay').textContent;
-        document.getElementById('billToPhoneInput').value = document.getElementById('billToPhoneDisplay').textContent;
-        openModal(billToModal);
-      });
-      billToForm.addEventListener('submit', () => {
-        document.getElementById('billToNameDisplay').textContent = document.getElementById('billToNameInput').value.trim();
-        document.getElementById('billToAddressDisplay').textContent = document.getElementById('billToAddressInput').value.trim();
-        document.getElementById('billToPhoneDisplay').textContent = document.getElementById('billToPhoneInput').value.trim();
-        closeModal(billToModal);
-      });
+        const calendarModal = document.getElementById('calendar-modal');
+        const calendarGrid = document.getElementById('calendar-grid');
+        const preOrderDetailsTitle = document.getElementById('pre-order-details-title');
+        const preOrderList = document.getElementById('pre-order-list');
+        const closeCalendarModalBtn = document.getElementById('close-calendar-modal');
+        
+        // Generic Modal
+        const genericModal = document.getElementById('generic-modal');
+        const modalMessage = document.getElementById('modal-message');
+        const modalActions = document.getElementById('modal-actions');
+        const modalConfirmBtn = document.getElementById('modal-confirm-btn');
+        const modalCancelBtn = document.getElementById('modal-cancel-btn');
 
-      // Ship To modal open/save
-      const shipToModal = document.getElementById('shipToModal');
-      const editShipToBtn = document.getElementById('editShipToBtn');
-      const shipToForm = document.getElementById('shipToForm');
-      editShipToBtn.addEventListener('click', () => {
-        document.getElementById('shipToNameInput').value = document.getElementById('shipToNameDisplay').textContent;
-        document.getElementById('shipToAddressInput').value = document.getElementById('shipToAddressDisplay').textContent;
-        document.getElementById('shipToPhoneInput').value = document.getElementById('shipToPhoneDisplay').textContent;
-        openModal(shipToModal);
-      });
-      shipToForm.addEventListener('submit', () => {
-        document.getElementById('shipToNameDisplay').textContent = document.getElementById('shipToNameInput').value.trim();
-        document.getElementById('shipToAddressDisplay').textContent = document.getElementById('shipToAddressInput').value.trim();
-        document.getElementById('shipToPhoneDisplay').textContent = document.getElementById('shipToPhoneInput').value.trim();
-        closeModal(shipToModal);
-      });
+        // Custom Order Modal
+        const customOrderModal = document.getElementById('custom-order-modal');
+        const customNameInput = document.getElementById('custom-name-input');
+        const customPriceInput = document.getElementById('custom-price-input');
+        const customRemarksInput = document.getElementById('custom-remarks-input');
+        const addCustomItemBtn = document.getElementById('add-custom-item-btn');
+        const cancelCustomOrderBtn = document.getElementById('cancel-custom-order');
 
-      // Custom alert modal
-      const customAlert = document.getElementById('customAlert');
-      const alertMessage = document.getElementById('alertMessage');
-      const alertOkBtn = document.getElementById('alertOkBtn');
-      function showCustomAlert(message) {
-        alertMessage.textContent = message;
-        openModal(customAlert);
-      }
-      alertOkBtn.addEventListener('click', () => {
-        closeModal(customAlert);
-      });
-      window.showCustomAlert = showCustomAlert;
+        // Edit Modal
+        const editModal = document.getElementById('edit-modal');
+        const editModalTitle = document.getElementById('edit-modal-title');
+        const editNameInput = document.getElementById('edit-name-input');
+        const editPriceInput = document.getElementById('edit-price-input');
+        const editDescriptionInput = document.getElementById('edit-description-input');
+        const editContactInput = document.getElementById('edit-contact-input');
+        const editNameContainer = document.getElementById('edit-name-container');
+        const editPriceContainer = document.getElementById('edit-price-container');
+        const editDescriptionContainer = document.getElementById('edit-description-container');
+        const editContactContainer = document.getElementById('edit-contact-container');
+        const cancelEditBtn = document.getElementById('cancel-edit-btn');
+        const saveEditBtn = document.getElementById('save-edit-btn');
+        
+        // Order Details Modal
+        const orderDetailsModal = document.getElementById('order-details-modal');
+        const orderDetailsContent = document.getElementById('order-details-content');
+        const closeOrderDetailsModalBtn = document.getElementById('close-order-details-modal');
 
-      // Custom confirm modal
-      const customConfirm = document.getElementById('customConfirm');
-      const confirmMessage = document.getElementById('confirmMessage');
-      const confirmOkBtn = document.getElementById('confirmOkBtn');
-      const confirmCancelBtn = document.getElementById('confirmCancelBtn');
-      let confirmCallback = null;
-      function showCustomConfirm(message, callback) {
-        confirmMessage.textContent = message;
-        confirmCallback = callback;
-        openModal(customConfirm);
-      }
-      confirmOkBtn.addEventListener('click', () => {
-        if (confirmCallback) confirmCallback(true);
-        closeModal(customConfirm);
-      });
-      confirmCancelBtn.addEventListener('click', () => {
-        if (confirmCallback) confirmCallback(false);
-        closeModal(customConfirm);
-      });
+        // Customer History Modal
+        const customerHistoryModal = document.getElementById('customer-history-modal');
+        const customerHistoryContent = document.getElementById('customer-history-content');
+        const closeCustomerHistoryModalBtn = document.getElementById('close-customer-history-modal');
 
-      // Invoice number generation
-      function generateInvoiceNumber() {
-        const now = new Date();
-        const year = now.getFullYear().toString().slice(-2);
-        const month = (now.getMonth() + 1).toString().padStart(2, '0');
-        const randomNum = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
-        return `INV-${year}${month}/${randomNum}`;
-      }
-
-      // Initialize invoice number and date
-      const invoiceInput = document.getElementById("invoiceNumber");
-      if (!invoiceInput.value.trim()) {
-        invoiceInput.value = generateInvoiceNumber();
-      }
-      const invoiceDateInput = document.getElementById("invoiceDate");
-      if (!invoiceDateInput.value) {
-        invoiceDateInput.valueAsDate = new Date();
-      }
-
-      // Add item row
-      function addItem() {
-        const itemsContainer = document.getElementById("invoiceItems");
-        const newItem = document.createElement("tr");
-        newItem.className = "invoice-item border-b";
-        newItem.innerHTML = `
-          <td class="p-3">
-            <textarea
-              placeholder="Item name"
-              rows="2"
-              class="w-full px-2 py-1 border border-gray-300 rounded item-description resize-none focus:ring-2 focus:ring-pink-400 focus:border-pink-500"
-              aria-label="Item description"
-            ></textarea>
-          </td>
-          <td class="p-3">
-            <input
-              type="number"
-              min="1"
-              value="1"
-              class="w-20 px-2 py-1 border border-gray-300 rounded text-center item-quantity focus:ring-2 focus:ring-pink-400 focus:border-pink-500"
-              onchange="calculateTotals()"
-              aria-label="Quantity"
-            />
-          </td>
-          <td class="p-3">
-            <input
-              type="number"
-              step="0.01"
-              min="0"
-              placeholder="0.00"
-              class="w-24 px-2 py-1 border border-gray-300 rounded text-right item-price focus:ring-2 focus:ring-pink-400 focus:border-pink-500"
-              onchange="calculateTotals()"
-              aria-label="Unit price in ringgit"
-            />
-          </td>
-          <td class="p-3 text-right item-total font-semibold" aria-live="polite" aria-atomic="true">0.00</td>
-          <td class="p-3 text-center action-column no-print">
-            <button onclick="removeItem(this)" class="text-red-600 hover:text-red-800 focus:outline-none focus:ring-2 focus:ring-red-400 rounded" aria-label="Remove item" title="Remove item">Remove</button>
-          </td>
-        `;
-        itemsContainer.appendChild(newItem);
-      }
-
-      // Remove item row
-      function removeItem(button) {
-        const row = button.closest("tr");
-        if (document.querySelectorAll(".invoice-item").length > 1) {
-          row.remove();
-          calculateTotals();
-        } else {
-          showCustomAlert("At least one item is required.");
+        // Edit Pre-order Modal
+        const editPreorderModal = document.getElementById('edit-preorder-modal');
+        const editPreorderDate = document.getElementById('edit-preorder-date');
+        const editPreorderTime = document.getElementById('edit-preorder-time');
+        const savePreorderEditBtn = document.getElementById('save-preorder-edit-btn');
+        const cancelPreorderEditBtn = document.getElementById('cancel-preorder-edit-btn');
+        
+        // --- Utility Functions ---
+        function generateUniqueId() {
+            return 'id_' + Math.random().toString(36).substr(2, 9);
         }
-      }
 
-      // Calculate totals
-      function calculateTotals() {
-        let subtotal = 0;
-        const items = document.querySelectorAll(".invoice-item");
-        items.forEach((item) => {
-          const quantity =
-            parseFloat(item.querySelector(".item-quantity").value) || 0;
-          const price =
-            parseFloat(item.querySelector(".item-price").value) || 0;
-          const total = quantity * price;
-          item.querySelector(".item-total").textContent = total.toFixed(2);
-          subtotal += total;
-        });
-        const total = subtotal;
-        document.getElementById("subtotal").textContent = "RM " + subtotal.toFixed(2);
-        document.getElementById("total").textContent = "RM " + total.toFixed(2);
-      }
+        function showGenericModal(message, isConfirmation = false, onConfirm = null) {
+            modalMessage.textContent = message;
+            genericModal.classList.remove('hidden');
+            genericModal.classList.add('flex');
 
-      // Reset form with confirmation
-      function resetForm() {
-        showCustomConfirm("Are you sure you want to reset the form? All data will be lost.", (result) => {
-          if (result) {
-            document.getElementById("invoiceNumber").value = generateInvoiceNumber();
-            document.getElementById("invoiceDate").valueAsDate = new Date();
-            document.getElementById("billToNameDisplay").textContent = "";
-            document.getElementById("billToAddressDisplay").textContent = "";
-            document.getElementById("billToPhoneDisplay").textContent = "";
-            document.getElementById("shipToNameDisplay").textContent = "";
-            document.getElementById("shipToAddressDisplay").textContent = "";
-            document.getElementById("shipToPhoneDisplay").textContent = "";
-            const itemsContainer = document.getElementById("invoiceItems");
-            itemsContainer.innerHTML = `
-              <tr class="invoice-item border-b">
-                <td class="p-3">
-                  <textarea placeholder="Item name" rows="2" class="w-full px-2 py-1 border border-gray-300 rounded item-description resize-none focus:ring-2 focus:ring-pink-400 focus:border-pink-500"></textarea>
-                </td>
-                <td class="p-3">
-                  <input type="number" min="1" value="1" class="w-20 px-2 py-1 border border-gray-300 rounded text-center item-quantity" onchange="calculateTotals()" aria-label="Quantity"/>
-                </td>
-                <td class="p-3">
-                  <input type="number" step="0.01" min="0" placeholder="0.00" class="w-24 px-2 py-1 border border-gray-300 rounded text-right item-price" onchange="calculateTotals()" aria-label="Unit price in ringgit"/>
-                </td>
-                <td class="p-3 text-right item-total font-semibold" aria-live="polite" aria-atomic="true">0.00</td>
-                <td class="p-3 text-center action-column no-print">
-                  <button onclick="removeItem(this)" class="text-red-600 hover:text-red-800 focus:outline-none focus:ring-2 focus:ring-red-400 rounded" aria-label="Remove item" title="Remove item">Remove</button>
-                </td>
-              </tr>
+            modalActions.classList.remove('justify-center');
+            modalActions.classList.add('justify-end');
+
+            if (isConfirmation) {
+                modalCancelBtn.classList.remove('hidden');
+                modalConfirmBtn.textContent = 'Confirm';
+                modalActions.classList.remove('justify-end');
+                modalActions.classList.add('justify-center');
+
+                modalConfirmBtn.onclick = () => {
+                    if (onConfirm) onConfirm();
+                    hideGenericModal();
+                };
+                modalCancelBtn.onclick = () => {
+                    hideGenericModal();
+                };
+            } else {
+                modalCancelBtn.classList.add('hidden');
+                modalConfirmBtn.textContent = 'OK';
+                modalConfirmBtn.onclick = hideGenericModal;
+            }
+        }
+
+        function hideGenericModal() {
+            genericModal.classList.remove('flex');
+            genericModal.classList.add('hidden');
+        }
+
+        function showView(viewName) {
+            cashierView.classList.add('hidden');
+            adminView.classList.add('hidden');
+            cashierBtn.classList.remove('active-tab');
+            adminBtn.classList.remove('active-tab');
+
+            if (viewName === 'cashier') {
+                cashierView.classList.remove('hidden');
+                cashierBtn.classList.add('active-tab');
+                renderMenuCards(); // Re-render menu when switching to cashier view
+            } else if (viewName === 'admin') {
+                adminView.classList.remove('hidden');
+                adminBtn.classList.add('active-tab');
+                showAdminTab('sales'); // Default to sales tab in admin view
+            }
+        }
+
+        function showAdminTab(tabName) {
+            salesContent.classList.add('hidden');
+            expensesContent.classList.add('hidden');
+            menuContent.classList.add('hidden');
+            customersContent.classList.add('hidden');
+            salesTab.classList.remove('active-tab');
+            expensesTab.classList.remove('active-tab');
+            menuTab.classList.remove('active-tab');
+            customersTab.classList.remove('active-tab');
+
+            if (tabName === 'sales') {
+                salesContent.classList.remove('hidden');
+                salesTab.classList.add('active-tab');
+                renderSalesTable();
+                updateCashierFilter(); // Update filter options
+            } else if (tabName === 'expenses') {
+                expensesContent.classList.remove('hidden');
+                expensesTab.classList.add('active-tab');
+                renderExpensesTable();
+            } else if (tabName === 'menu') {
+                menuContent.classList.remove('hidden');
+                menuTab.classList.add('active-tab');
+                renderAdminMenu();
+            } else if (tabName === 'customers') {
+                customersContent.classList.remove('hidden');
+                customersTab.classList.add('active-tab');
+                renderAdminCustomers();
+            }
+        }
+
+        // --- Cashier Functions ---
+        function renderMenuCards() {
+            menuCards.innerHTML = '';
+            const displayItems = menuItems.slice(0, 10); // Display top 10 items
+            
+            displayItems.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'bg-white rounded-lg shadow-md p-4 cursor-pointer hover:shadow-lg transition-shadow duration-200';
+                card.innerHTML = `
+                    <h3 class="font-semibold text-gray-800">${item.name}</h3>
+                    <p class="text-sm text-gray-500">${item.description || ''}</p>
+                    <p class="text-lg font-bold text-purple-600 mt-2">RM ${item.price.toFixed(2)}</p>
+                `;
+                card.addEventListener('click', () => addToCart(item));
+                menuCards.appendChild(card);
+            });
+            
+            // Custom Order Card
+            const customCard = document.createElement('div');
+            customCard.className = 'bg-yellow-100 rounded-lg shadow-md p-4 cursor-pointer hover:shadow-lg transition-shadow duration-200';
+            customCard.innerHTML = `
+                <h3 class="font-semibold text-gray-800">Custom Order</h3>
+                <p class="text-sm text-gray-500">Input name, price & details</p>
+                <p class="text-lg font-bold text-gray-600 mt-2">Custom Price</p>
             `;
-            calculateTotals();
-          }
-        });
-      }
-
-      // Print invoice with validation
-      function printInvoice() {
-        const billToName = document.getElementById("billToNameDisplay").textContent.trim();
-        if (!billToName) {
-          showCustomAlert("Please enter Bill To customer name before printing.");
-          return;
+            customCard.addEventListener('click', () => {
+                customOrderModal.classList.remove('hidden');
+                customOrderModal.classList.add('flex');
+            });
+            menuCards.appendChild(customCard);
         }
-        window.print();
-      }
 
-      // Initialize totals on page load
-      calculateTotals();
+        function addToCart(item) {
+            const existingItemIndex = cart.findIndex(cartItem => cartItem.id === item.id && !cartItem.remarks);
+            if (existingItemIndex > -1) {
+                cart[existingItemIndex].quantity += 1;
+            } else {
+                cart.push({ ...item, quantity: 1, remarks: '' });
+            }
+            renderCart();
+        }
+
+        function addCustomItem() {
+            const name = customNameInput.value.trim();
+            const price = parseFloat(customPriceInput.value);
+            const remarks = customRemarksInput.value.trim();
+
+            if (!name || isNaN(price) || price <= 0) {
+                showGenericModal('Please enter a valid name and price for the custom item.');
+                return;
+            }
+            
+            cart.push({
+                id: generateUniqueId(), // Unique ID for custom item
+                name: name,
+                price: price,
+                quantity: 1,
+                remarks: remarks,
+                isCustom: true
+            });
+            
+            customNameInput.value = '';
+            customPriceInput.value = '';
+            customRemarksInput.value = '';
+            customOrderModal.classList.remove('flex');
+            customOrderModal.classList.add('hidden');
+            renderCart();
+        }
+
+        function renderCart() {
+            cartList.innerHTML = '';
+            let total = 0;
+            cart.forEach((item, index) => {
+                const li = document.createElement('li');
+                li.className = 'flex-col justify-between items-start bg-gray-100 rounded-md p-3';
+                li.innerHTML = `
+                    <div class="flex justify-between items-center w-full">
+                        <div>
+                            <span class="font-medium">${item.name}</span>
+                            <span class="text-sm text-gray-500"> (x${item.quantity})</span>
+                            <p class="text-sm text-gray-600">RM ${(item.price * item.quantity).toFixed(2)}</p>
+                        </div>
+                        <div>
+                            <button class="add-quantity-btn bg-green-200 text-green-700 font-bold w-6 h-6 rounded-full text-sm mr-1">+</button>
+                            <button class="remove-quantity-btn bg-red-200 text-red-700 font-bold w-6 h-6 rounded-full text-sm">-</button>
+                            <button class="remove-item-btn bg-red-500 text-white w-6 h-6 rounded-full text-sm ml-1">&times;</button>
+                        </div>
+                    </div>
+                    <input type="text" class="item-remarks-input text-xs p-1 mt-2 w-full rounded border border-gray-300 focus:ring-purple-500 focus:border-purple-500" placeholder="Add notes..." value="${item.remarks || ''}">
+                `;
+                li.querySelector('.add-quantity-btn').addEventListener('click', () => {
+                    cart[index].quantity++;
+                    renderCart();
+                });
+                li.querySelector('.remove-quantity-btn').addEventListener('click', () => {
+                    if (cart[index].quantity > 1) {
+                        cart[index].quantity--;
+                    }
+                    renderCart();
+                });
+                li.querySelector('.remove-item-btn').addEventListener('click', () => {
+                    cart.splice(index, 1);
+                    renderCart();
+                });
+                li.querySelector('.item-remarks-input').addEventListener('input', (e) => {
+                    cart[index].remarks = e.target.value;
+                });
+
+                cartList.appendChild(li);
+                total += item.price * item.quantity;
+            });
+            cartTotal.textContent = `RM ${total.toFixed(2)}`;
+        }
+
+        function saveOrder() {
+            if (cart.length === 0) {
+                showGenericModal('Cart is empty. Please add items to save an order.');
+                return;
+            }
+            
+            const orderType = orderTypeSelect.value;
+            const customerName = customerNameInput.value.trim() || 'N/A';
+            const customerContact = customerContactInput.value.trim() || 'N/A';
+            const isPreOrder = preOrderToggle.checked;
+            
+            const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+            const deposit = isPreOrder ? (parseFloat(depositInput.value) || 0) : 0;
+            
+            if (isPreOrder && deposit > total) {
+                showGenericModal('Deposit cannot be more than the total amount.');
+                return;
+            }
+
+            let customerId = 'N/A';
+            if (customerContact !== 'N/A') {
+                let existingCustomer = customerRecords.find(cust => cust.contact === customerContact);
+                if (existingCustomer) {
+                    customerId = existingCustomer.id;
+                    existingCustomer.lastOrderTimestamp = new Date();
+                } else {
+                    const newCustomer = {
+                        id: generateUniqueId(),
+                        name: customerName,
+                        contact: customerContact,
+                        firstOrderTimestamp: new Date(),
+                        lastOrderTimestamp: new Date()
+                    };
+                    customerRecords.push(newCustomer);
+                    customerId = newCustomer.id;
+                }
+            }
+
+            const orderData = {
+                id: generateUniqueId(),
+                items: JSON.parse(JSON.stringify(cart)), // Deep copy cart items
+                total: total,
+                orderType: orderType,
+                customerName: customerName,
+                customerContact: customerContact,
+                customerId: customerId,
+                cashierId: currentUserId, // Mock cashier ID
+                timestamp: new Date(),
+                deposit: deposit,
+                balanceDue: total - deposit,
+                isPreOrder: isPreOrder
+            };
+
+            if (isPreOrder) {
+                const preOrderDate = preOrderDateInput.value;
+                const preOrderTime = preOrderTimeInput.value;
+                if (!preOrderDate || !preOrderTime) {
+                    showGenericModal('Please select a date and time for the pre-order.');
+                    return;
+                }
+                orderData.preOrderDateTime = new Date(`${preOrderDate}T${preOrderTime}`);
+
+                preOrderRecords.push(orderData);
+                showGenericModal('Pre-order saved successfully!');
+                clearCart();
+                renderCalendar(); // Update calendar after saving pre-order
+            } else {
+                salesRecords.push(orderData);
+                showGenericModal('Order saved successfully!');
+                clearCart();
+                renderSalesTable(); // Update sales table after saving order
+            }
+        }
+
+        function clearCart() {
+            cart = [];
+            renderCart();
+            customerNameInput.value = '';
+            customerContactInput.value = '';
+            preOrderToggle.checked = false;
+            preOrderDateTime.classList.add('hidden');
+            preOrderDateInput.value = '';
+            preOrderTimeInput.value = '';
+            depositInput.value = '';
+        }
+
+        customerContactInput.addEventListener('input', () => {
+            const contact = customerContactInput.value.trim();
+            if (contact) {
+                const customer = customerRecords.find(c => c.contact === contact);
+                if (customer) {
+                    customerNameInput.value = customer.name;
+                } else {
+                    customerNameInput.value = '';
+                }
+            }
+        });
+        
+        // --- Admin Functions ---
+        function renderSalesTable() {
+            salesTableBody.innerHTML = '';
+            let filteredSales = [...salesRecords]; // Create a copy to filter
+
+            // Apply filters
+            const filterDate = salesDateFilter.value;
+            const filterCashier = salesCashierFilter.value;
+            const filterType = salesTypeFilter.value;
+
+            if (filterDate) {
+                filteredSales = filteredSales.filter(record => record.timestamp.toISOString().split('T')[0] === filterDate);
+            }
+            if (filterCashier) {
+                filteredSales = filteredSales.filter(record => record.cashierId === filterCashier);
+            }
+            if (filterType) {
+                filteredSales = filteredSales.filter(record => record.orderType === filterType);
+            }
+            
+            // Sort by timestamp descending
+            filteredSales.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+
+            filteredSales.forEach(record => {
+                const tr = document.createElement('tr');
+                tr.className = 'border-b hover:bg-gray-50 transition-colors duration-200';
+                
+                const timestamp = record.timestamp;
+                const formattedDate = timestamp.toLocaleDateString();
+                const formattedTime = timestamp.toLocaleTimeString();
+                
+                const customerDisplay = record.customerContact !== 'N/A' ? `${record.customerName} (${record.customerContact})` : record.customerName;
+
+                tr.innerHTML = `
+                    <td class="py-3 px-6 text-sm text-gray-800">${record.id.slice(0, 8)}...</td>
+                    <td class="py-3 px-6 text-sm text-gray-800">${formattedDate} at ${formattedTime}</td>
+                    <td class="py-3 px-6 text-sm font-semibold text-purple-600">RM ${record.total.toFixed(2)}</td>
+                    <td class="py-3 px-6 text-sm text-gray-800">${record.orderType}</td>
+                    <td class="py-3 px-6 text-sm text-gray-800">${customerDisplay}</td>
+                    <td class="py-3 px-6 text-sm text-gray-800">${record.cashierId.slice(0, 8)}...</td>
+                    <td class="py-3 px-6 text-sm text-gray-800">
+                        <button data-id="${record.id}" class="view-order-btn text-blue-500 hover:text-blue-700 font-medium">Details</button>
+                    </td>
+                `;
+                salesTableBody.appendChild(tr);
+            });
+
+            document.querySelectorAll('.view-order-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const orderId = e.target.dataset.id;
+                    showOrderDetailsModal(orderId);
+                });
+            });
+        }
+        
+        function addExpense() {
+            const name = expenseNameInput.value.trim();
+            const price = parseFloat(expensePriceInput.value);
+            const unit = parseInt(expenseUnitInput.value);
+
+            if (!name || isNaN(price) || isNaN(unit) || price <= 0 || unit <= 0) {
+                showGenericModal('Please enter valid name, price, and units for the expense.');
+                return;
+            }
+
+            const newExpense = {
+                id: generateUniqueId(),
+                name,
+                price,
+                unit,
+                total: price * unit,
+                timestamp: new Date()
+            };
+            expensesRecords.push(newExpense);
+            
+            showGenericModal('Expense added successfully!');
+            expenseNameInput.value = '';
+            expensePriceInput.value = '';
+            expenseUnitInput.value = '';
+            renderExpensesTable(); // Re-render table
+        }
+        
+        function renderExpensesTable() {
+            expensesTableBody.innerHTML = '';
+            // Sort by timestamp descending
+            expensesRecords.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+
+            expensesRecords.forEach(record => {
+                const tr = document.createElement('tr');
+                tr.className = 'border-b hover:bg-gray-50 transition-colors duration-200';
+                const timestamp = record.timestamp;
+                const formattedDate = timestamp.toLocaleDateString();
+                tr.innerHTML = `
+                    <td class="py-3 px-6 text-sm text-gray-800">${formattedDate}</td>
+                    <td class="py-3 px-6 text-sm text-gray-800">${record.name}</td>
+                    <td class="py-3 px-6 text-sm text-gray-800">RM ${record.price.toFixed(2)}</td>
+                    <td class="py-3 px-6 text-sm text-gray-800">${record.unit}</td>
+                    <td class="py-3 px-6 text-sm font-semibold text-purple-600">RM ${record.total.toFixed(2)}</td>
+                `;
+                expensesTableBody.appendChild(tr);
+            });
+        }
+        
+        function saveMenuItem() {
+            const name = menuNameInput.value.trim();
+            const price = parseFloat(menuPriceInput.value);
+            const description = menuDescriptionInput.value.trim();
+
+            if (!name || isNaN(price) || price <= 0) {
+                showGenericModal('Please enter a valid item name and price.');
+                return;
+            }
+            
+            const existingItemIndex = menuItems.findIndex(item => item.name.toLowerCase() === name.toLowerCase());
+            if (existingItemIndex > -1) {
+                menuItems[existingItemIndex].price = price;
+                menuItems[existingItemIndex].description = description;
+                showGenericModal('Menu item updated successfully!');
+            } else {
+                const newItem = { id: generateUniqueId(), name, price, description };
+                menuItems.push(newItem);
+                showGenericModal('New menu item added successfully!');
+            }
+            
+            menuNameInput.value = '';
+            menuPriceInput.value = '';
+            menuDescriptionInput.value = '';
+            renderAdminMenu(); // Re-render menu table
+            renderMenuCards(); // Re-render cashier menu cards
+        }
+        
+        function renderAdminMenu() {
+            menuTableBody.innerHTML = '';
+            menuItems.forEach(item => {
+                const tr = document.createElement('tr');
+                tr.className = 'border-b hover:bg-gray-50 transition-colors duration-200';
+                tr.innerHTML = `
+                    <td class="py-3 px-6 text-sm text-gray-800">${item.name}</td>
+                    <td class="py-3 px-6 text-sm text-gray-800">RM ${item.price.toFixed(2)}</td>
+                    <td class="py-3 px-6 text-sm text-gray-800">${item.description || '-'}</td>
+                    <td class="py-3 px-6 text-sm text-gray-800">
+                        <button data-id="${item.id}" class="edit-menu-btn text-blue-500 hover:text-blue-700 transition-colors duration-200 mr-2">Edit</button>
+                        <button data-id="${item.id}" class="delete-menu-btn text-red-500 hover:text-red-700 transition-colors duration-200">Delete</button>
+                    </td>
+                `;
+                menuTableBody.appendChild(tr);
+            });
+            
+            document.querySelectorAll('.edit-menu-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const itemId = e.target.dataset.id;
+                    const item = menuItems.find(i => i.id === itemId);
+                    if (item) {
+                        showEditModal('Edit Menu Item', { 
+                            name: item.name, 
+                            price: item.price, 
+                            description: item.description 
+                        }, (updatedItem) => {
+                            const index = menuItems.findIndex(i => i.id === itemId);
+                            if (index > -1) {
+                                menuItems[index] = { ...menuItems[index], ...updatedItem };
+                                showGenericModal('Menu item updated successfully!');
+                                renderAdminMenu();
+                                renderMenuCards();
+                            }
+                        });
+                    }
+                });
+            });
+
+            document.querySelectorAll('.delete-menu-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const itemId = e.target.dataset.id;
+                    showGenericModal("Are you sure you want to delete this menu item?", true, () => {
+                        menuItems = menuItems.filter(item => item.id !== itemId);
+                        showGenericModal('Menu item deleted successfully.');
+                        renderAdminMenu();
+                        renderMenuCards();
+                    });
+                });
+            });
+        }
+        
+        function renderAdminCustomers() {
+            customersTableBody.innerHTML = '';
+            customerRecords.forEach(customer => {
+                const tr = document.createElement('tr');
+                tr.className = 'border-b hover:bg-gray-50 transition-colors duration-200';
+                tr.innerHTML = `
+                    <td class="py-3 px-6 text-sm text-gray-800">${customer.name || '-'}</td>
+                    <td class="py-3 px-6 text-sm text-gray-800">${customer.contact || '-'}</td>
+                    <td class="py-3 px-6 text-sm text-gray-800">
+                        <button data-id="${customer.id}" class="edit-customer-btn text-blue-500 hover:text-blue-700 transition-colors duration-200 mr-4">Edit</button>
+                        <button data-id="${customer.id}" class="view-history-btn text-purple-500 hover:text-purple-700 transition-colors duration-200">View History</button>
+                    </td>
+                `;
+                customersTableBody.appendChild(tr);
+            });
+
+            document.querySelectorAll('.edit-customer-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const customerId = e.target.dataset.id;
+                    const customer = customerRecords.find(c => c.id === customerId);
+                    if (customer) {
+                        showEditModal('Edit Customer', { 
+                            name: customer.name, 
+                            contact: customer.contact 
+                        }, (updatedCustomer) => {
+                            const index = customerRecords.findIndex(c => c.id === customerId);
+                            if (index > -1) {
+                                customerRecords[index] = { ...customerRecords[index], ...updatedCustomer };
+                                showGenericModal('Customer record updated successfully!');
+                                renderAdminCustomers();
+                            }
+                        });
+                    }
+                });
+            });
+
+            document.querySelectorAll('.view-history-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const customerId = e.target.dataset.id;
+                    showCustomerHistoryModal(customerId);
+                });
+            });
+        }
+        
+        function updateCashierFilter() {
+            const cashierIds = [...new Set(salesRecords.map(s => s.cashierId))];
+            salesCashierFilter.innerHTML = '<option value="">All Cashiers</option>';
+            cashierIds.forEach(id => {
+                const option = document.createElement('option');
+                option.value = id;
+                option.textContent = id.slice(0, 8) + '...'; // Display truncated ID
+                salesCashierFilter.appendChild(option);
+            });
+        }
+        
+        function exportToCsv(data, filename) {
+            if (data.length === 0) {
+                showGenericModal("No data to export.");
+                return;
+            }
+            const replacer = (key, value) => value === null ? '' : value; // Handle null values
+            const header = Object.keys(data[0]);
+            let csv = data.map(row => header.map(fieldName => JSON.stringify(row[fieldName], replacer)).join(','));
+            csv.unshift(header.join(','));
+            csv = csv.join('\r\n');
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            saveAs(blob, filename);
+        }
+
+        // --- Calendar Functions ---
+        function renderCalendar(month = new Date().getMonth(), year = new Date().getFullYear()) {
+            calendarGrid.innerHTML = '';
+            
+            const firstDay = new Date(year, month, 1);
+            const lastDay = new Date(year, month + 1, 0);
+            const firstDayOfWeek = firstDay.getDay(); // 0 for Sunday, 1 for Monday, etc.
+            
+            // Add empty cells for days before the 1st
+            for (let i = 0; i < firstDayOfWeek; i++) {
+                const emptyCell = document.createElement('div');
+                emptyCell.className = 'w-10 h-10';
+                calendarGrid.appendChild(emptyCell);
+            }
+
+            for (let i = 1; i <= lastDay.getDate(); i++) {
+                const date = new Date(year, month, i);
+                const hasPreorders = preOrderRecords.some(po => po.preOrderDateTime.toISOString().split('T')[0] === date.toISOString().split('T')[0]);
+                
+                const cell = document.createElement('div');
+                cell.className = `w-10 h-10 flex items-center justify-center rounded-full cursor-pointer hover:bg-purple-100 transition-colors duration-200 ${hasPreorders ? 'bg-purple-200 font-bold text-purple-800' : 'text-gray-800'}`;
+                cell.textContent = i;
+                cell.dataset.date = date.toISOString().split('T')[0];
+                cell.addEventListener('click', () => showPreordersForDate(cell.dataset.date));
+                calendarGrid.appendChild(cell);
+            }
+            
+            // Set initial pre-order details for today
+            showPreordersForDate(new Date().toISOString().split('T')[0]);
+        }
+
+        function showPreordersForDate(dateStr) {
+            preOrderDetailsTitle.textContent = `Pre-orders for: ${new Date(dateStr).toLocaleDateString()}`;
+            preOrderList.innerHTML = '';
+            
+            const preordersForDate = preOrderRecords.filter(po => po.preOrderDateTime.toISOString().split('T')[0] === dateStr);
+            
+            if (preordersForDate.length === 0) {
+                preOrderList.innerHTML = '<li class="text-gray-500 italic">No pre-orders for this date.</li>';
+                return;
+            }
+            
+            preordersForDate.forEach(po => {
+                const li = document.createElement('li');
+                li.className = 'bg-gray-100 p-3 rounded-md flex flex-col sm:flex-row sm:justify-between items-start sm:items-center';
+                const items = po.items; // Already parsed
+                const balance = (po.total - po.deposit).toFixed(2);
+                li.innerHTML = `
+                    <div class="mb-2 sm:mb-0">
+                        <p class="font-medium">Customer: ${po.customerName}</p>
+                        <p class="text-sm">Pickup: ${po.preOrderDateTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                        <p class="text-sm">Total: RM ${po.total.toFixed(2)}</p>
+                        <p class="text-sm">Deposit: RM ${po.deposit.toFixed(2)}</p>
+                        <p class="text-sm font-semibold text-purple-600">Balance Due: RM ${balance}</p>
+                        <p class="text-xs text-gray-500 mt-1">${items.map(i => `${i.name} (x${i.quantity})`).join(', ')}</p>
+                    </div>
+                    <div class="flex gap-2 mt-2 sm:mt-0">
+                        <button data-id="${po.id}" class="edit-preorder-btn bg-blue-500 text-white font-bold py-2 px-4 rounded-md text-sm hover:bg-blue-600">Edit</button>
+                        <button data-id="${po.id}" class="confirm-delivery-btn bg-green-500 text-white font-bold py-2 px-4 rounded-md text-sm hover:bg-green-600">Confirm Delivery</button>
+                    </div>
+                `;
+                li.querySelector('.edit-preorder-btn').addEventListener('click', () => {
+                    editPreOrder(po.id);
+                });
+                li.querySelector('.confirm-delivery-btn').addEventListener('click', () => {
+                    confirmDelivery(po.id, po.total, po.deposit);
+                });
+                preOrderList.appendChild(li);
+            });
+        }
+
+        function editPreOrder(preOrderId) {
+            const preOrder = preOrderRecords.find(po => po.id === preOrderId);
+            if (!preOrder) return;
+            
+            const originalDate = preOrder.preOrderDateTime.toISOString().split('T')[0];
+            const originalTime = preOrder.preOrderDateTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+            
+            editPreorderDate.value = originalDate;
+            editPreorderTime.value = originalTime;
+            
+            editPreorderModal.classList.remove('hidden');
+            editPreorderModal.classList.add('flex');
+            
+            savePreorderEditBtn.onclick = () => {
+                const newDate = editPreorderDate.value;
+                const newTime = editPreorderTime.value;
+                
+                const newDateTime = new Date(`${newDate}T${newTime}`);
+                if (isNaN(newDateTime.getTime())) {
+                    showGenericModal('Invalid date or time provided.');
+                    return;
+                }
+                
+                const index = preOrderRecords.findIndex(po => po.id === preOrderId);
+                if (index > -1) {
+                    preOrderRecords[index].preOrderDateTime = newDateTime;
+                    showGenericModal('Pre-order updated successfully.');
+                    editPreorderModal.classList.remove('flex');
+                    editPreorderModal.classList.add('hidden');
+                    renderCalendar(); // Re-render calendar to reflect changes
+                }
+            };
+            
+            cancelPreorderEditBtn.onclick = () => {
+                editPreorderModal.classList.remove('flex');
+                editPreorderModal.classList.add('hidden');
+            };
+        }
+
+        function confirmDelivery(preOrderId, total, deposit) {
+            const balanceDue = total - deposit;
+            const confirmationMessage = `The balance due for this order is RM ${balanceDue.toFixed(2)}. Do you want to confirm delivery and finalize the sale?`;
+            
+            showGenericModal(confirmationMessage, true, () => {
+                const preOrderIndex = preOrderRecords.findIndex(po => po.id === preOrderId);
+                if (preOrderIndex > -1) {
+                    const preOrderData = preOrderRecords[preOrderIndex];
+                    
+                    const salesData = {
+                        ...preOrderData,
+                        id: generateUniqueId(), // New ID for sales record
+                        timestamp: new Date(),
+                        isPreOrder: false 
+                    };
+                    
+                    salesRecords.push(salesData);
+                    preOrderRecords.splice(preOrderIndex, 1); // Remove from pre-orders
+                    
+                    showGenericModal('Order successfully confirmed and added to sales records!');
+                    renderCalendar(); // Update calendar
+                    renderSalesTable(); // Update sales table
+                } else {
+                    showGenericModal('Pre-order not found.');
+                }
+            });
+        }
+
+        function showEditModal(title, data, onSave) {
+            editModalTitle.textContent = title;
+            editModal.classList.remove('hidden');
+            editModal.classList.add('flex');
+
+            // Hide all containers initially
+            editNameContainer.classList.add('hidden');
+            editPriceContainer.classList.add('hidden');
+            editDescriptionContainer.classList.add('hidden');
+            editContactContainer.classList.add('hidden');
+
+            const currentData = {}; // Object to hold current values for editing
+
+            if (data.name !== undefined) {
+                editNameContainer.classList.remove('hidden');
+                editNameInput.value = data.name;
+                currentData.name = data.name;
+            }
+            if (data.contact !== undefined) {
+                editContactContainer.classList.remove('hidden');
+                editContactInput.value = data.contact;
+                currentData.contact = data.contact;
+            }
+            if (data.price !== undefined) {
+                editPriceContainer.classList.remove('hidden');
+                editPriceInput.value = data.price;
+                currentData.price = data.price;
+            }
+            if (data.description !== undefined) {
+                editDescriptionContainer.classList.remove('hidden');
+                editDescriptionInput.value = data.description;
+                currentData.description = data.description;
+            }
+
+            // Update currentData on input change
+            editNameInput.oninput = (e) => currentData.name = e.target.value;
+            editContactInput.oninput = (e) => currentData.contact = e.target.value;
+            editPriceInput.oninput = (e) => currentData.price = parseFloat(e.target.value);
+            editDescriptionInput.oninput = (e) => currentData.description = e.target.value;
+
+            saveEditBtn.onclick = () => {
+                onSave(currentData);
+                hideEditModal();
+            };
+            cancelEditBtn.onclick = hideEditModal;
+        }
+
+        function hideEditModal() {
+            editModal.classList.remove('flex');
+            editModal.classList.add('hidden');
+        }
+
+        function showOrderDetailsModal(orderId) {
+            const order = salesRecords.find(s => s.id === orderId);
+            if (!order) return;
+
+            orderDetailsContent.innerHTML = ''; // Clear previous content
+
+            const detailsDiv = document.createElement('div');
+            detailsDiv.className = 'text-sm text-gray-700 mb-4';
+            detailsDiv.innerHTML = `
+                <p><strong>Order ID:</strong> ${order.id}</p>
+                <p><strong>Customer:</strong> ${order.customerName} (${order.customerContact})</p>
+                <p><strong>Date:</strong> ${order.timestamp.toLocaleString()}</p>
+                <p><strong>Total:</strong> RM ${order.total.toFixed(2)}</p>
+            `;
+            orderDetailsContent.appendChild(detailsDiv);
+
+            const items = order.items; // Already parsed
+            const itemsList = document.createElement('ul');
+            itemsList.className = 'space-y-2';
+
+            items.forEach((item, index) => {
+                const li = document.createElement('li');
+                li.className = 'flex justify-between items-center bg-gray-50 p-2 rounded-md';
+                li.innerHTML = `
+                    <div>
+                        <span class="font-medium">${item.name} (x${item.quantity})</span>
+                        <p class="text-xs text-gray-500">RM ${item.price.toFixed(2)} each</p>
+                        ${item.remarks ? `<p class="text-xs italic text-purple-600">Note: ${item.remarks}</p>` : ''}
+                    </div>
+                    <button data-order-id="${order.id}" data-item-index="${index}" class="void-item-btn bg-red-500 text-white font-bold py-1 px-3 rounded-md text-sm hover:bg-red-600">Void</button>
+                `;
+                itemsList.appendChild(li);
+            });
+            orderDetailsContent.appendChild(itemsList);
+
+            document.querySelectorAll('.void-item-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const orderIdToUpdate = e.target.dataset.orderId;
+                    const itemIndexToVoid = parseInt(e.target.dataset.itemIndex);
+                    
+                    showGenericModal("Are you sure you want to void this item? The order total will be recalculated.", true, () => {
+                        voidOrderItem(orderIdToUpdate, itemIndexToVoid);
+                    });
+                });
+            });
+
+            orderDetailsModal.classList.remove('hidden');
+            orderDetailsModal.classList.add('flex');
+        }
+        
+        function voidOrderItem(orderId, itemIndex) {
+            const orderIndex = salesRecords.findIndex(s => s.id === orderId);
+            if (orderIndex === -1) {
+                showGenericModal("Order not found.");
+                return;
+            }
+
+            let orderData = salesRecords[orderIndex];
+            let items = [...orderData.items]; // Create a copy of items array
+
+            // Remove the item
+            items.splice(itemIndex, 1);
+            
+            // Recalculate total
+            const newTotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            
+            // Update the in-memory record
+            salesRecords[orderIndex] = {
+                ...orderData,
+                items: items,
+                total: newTotal
+            };
+
+            showGenericModal("Item voided and order updated successfully.");
+            // Refresh the modal content and sales table
+            showOrderDetailsModal(orderId); 
+            renderSalesTable();
+        }
+
+        function showCustomerHistoryModal(customerId) {
+            const customer = customerRecords.find(c => c.id === customerId);
+            if (!customer) return;
+
+            customerHistoryContent.innerHTML = '';
+
+            const customerInfo = document.createElement('div');
+            customerInfo.className = 'mb-4';
+            customerInfo.innerHTML = `
+                <p class="font-bold text-lg">${customer.name}</p>
+                <p class="text-sm text-gray-600">${customer.contact}</p>
+            `;
+            customerHistoryContent.appendChild(customerInfo);
+
+            const purchaseHistory = salesRecords.filter(s => s.customerId === customerId);
+            if (purchaseHistory.length === 0) {
+                customerHistoryContent.innerHTML += `<p class="text-gray-500 italic">No purchase history found for this customer.</p>`;
+                customerHistoryModal.classList.remove('hidden');
+                customerHistoryModal.classList.add('flex');
+                return;
+            }
+
+            const historyList = document.createElement('div');
+            historyList.className = 'space-y-3';
+            purchaseHistory.forEach(order => {
+                const orderCard = document.createElement('div');
+                orderCard.className = 'bg-gray-50 p-3 rounded-lg border';
+                let itemsHtml = 'No items listed';
+                try {
+                    const items = order.items; // Already parsed
+                    itemsHtml = items.map(i => `<li>${i.name} (x${i.quantity})</li>`).join('');
+                } catch(e) { console.error("Could not parse items for order", order.id); }
+
+                orderCard.innerHTML = `
+                    <div class="flex justify-between items-center">
+                        <p class="font-semibold">${order.timestamp.toLocaleDateString()}</p>
+                        <p class="font-bold text-purple-600">RM ${order.total.toFixed(2)}</p>
+                    </div>
+                    <ul class="text-sm text-gray-600 mt-2 list-disc list-inside">
+                        ${itemsHtml}
+                    </ul>
+                `;
+                historyList.appendChild(orderCard);
+            });
+            customerHistoryContent.appendChild(historyList);
+            
+            customerHistoryModal.classList.remove('hidden');
+            customerHistoryModal.classList.add('flex');
+        }
+
+
+        // --- Event Listeners ---
+        cashierBtn.addEventListener('click', () => showView('cashier'));
+        adminBtn.addEventListener('click', () => showView('admin'));
+        
+        salesTab.addEventListener('click', () => showAdminTab('sales'));
+        expensesTab.addEventListener('click', () => showAdminTab('expenses'));
+        menuTab.addEventListener('click', () => showAdminTab('menu'));
+        customersTab.addEventListener('click', () => showAdminTab('customers'));
+
+        preOrderToggle.addEventListener('change', () => {
+            if (preOrderToggle.checked) {
+                preOrderDateTime.classList.remove('hidden');
+                saveOrderBtn.textContent = 'Save Pre-order';
+            } else {
+                preOrderDateTime.classList.add('hidden');
+                saveOrderBtn.textContent = 'Save Order';
+            }
+        });
+        
+        saveOrderBtn.addEventListener('click', saveOrder);
+        clearCartBtn.addEventListener('click', clearCart);
+        
+        addCustomItemBtn.addEventListener('click', addCustomItem);
+        cancelCustomOrderBtn.addEventListener('click', () => {
+            customOrderModal.classList.remove('flex');
+            customOrderModal.classList.add('hidden');
+        });
+
+        salesDateFilter.addEventListener('change', renderSalesTable);
+        salesCashierFilter.addEventListener('change', renderSalesTable);
+        salesTypeFilter.addEventListener('change', renderSalesTable);
+        
+        exportSalesBtn.addEventListener('click', () => {
+            const csvData = salesRecords.map(s => ({
+                id: s.id,
+                date: s.timestamp.toLocaleString(),
+                total: s.total,
+                type: s.orderType,
+                customer: s.customerName,
+                contact: s.customerContact,
+                cashier: s.cashierId,
+                items: s.items.map(i => `${i.name} (x${i.quantity})`).join('; ')
+            }));
+            exportToCsv(csvData, 'sales_records.csv');
+        });
+        
+        addExpenseBtn.addEventListener('click', addExpense);
+        exportExpensesBtn.addEventListener('click', () => {
+            const csvData = expensesRecords.map(e => ({
+                date: e.timestamp.toLocaleDateString(),
+                name: e.name,
+                price: e.price,
+                unit: e.unit,
+                total: e.total
+            }));
+            exportToCsv(csvData, 'expenses_records.csv');
+        });
+        
+        addMenuItemBtn.addEventListener('click', saveMenuItem);
+
+        viewCalendarBtn.addEventListener('click', () => {
+            calendarModal.classList.remove('hidden');
+            calendarModal.classList.add('flex');
+            renderCalendar();
+        });
+
+        closeCalendarModalBtn.addEventListener('click', () => {
+            calendarModal.classList.remove('flex');
+            calendarModal.classList.add('hidden');
+        });
+        
+        closeOrderDetailsModalBtn.addEventListener('click', () => {
+            orderDetailsModal.classList.remove('flex');
+            orderDetailsModal.classList.add('hidden');
+        });
+
+        closeCustomerHistoryModalBtn.addEventListener('click', () => {
+            customerHistoryModal.classList.remove('flex');
+            customerHistoryModal.classList.add('hidden');
+        });
+
+        // Initial render on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            showView('cashier'); // Start with cashier view
+            renderMenuCards(); // Ensure menu cards are rendered
+            renderCart(); // Ensure cart is initialized
+        });
+
     </script>
-  </body>
+</body>
 </html>
