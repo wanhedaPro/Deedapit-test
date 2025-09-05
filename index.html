@@ -9,8 +9,10 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <script type="module" src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
     <script type="module" src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"></script>
+    <script type="module" src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js"></script>
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -29,368 +31,596 @@
         }
         /* Custom scrollbar for better UX */
         .scrollable-content::-webkit-scrollbar,
-        #cart-list::-webkit-scrollbar,
-        #order-details-content::-webkit-scrollbar,
-        #customer-history-content::-webkit-scrollbar {
+        .modal-content::-webkit-scrollbar {
             width: 8px;
         }
         .scrollable-content::-webkit-scrollbar-track,
-        #cart-list::-webkit-scrollbar-track,
-        #order-details-content::-webkit-scrollbar-track,
-        #customer-history-content::-webkit-scrollbar-track {
+        .modal-content::-webkit-scrollbar-track {
             background: #f1f1f1;
-            border-radius: 10px;
         }
         .scrollable-content::-webkit-scrollbar-thumb,
-        #cart-list::-webkit-scrollbar-thumb,
-        #order-details-content::-webkit-scrollbar-thumb,
-        #customer-history-content::-webkit-scrollbar-thumb {
-            background: #888;
-            border-radius: 10px;
+        .modal-content::-webkit-scrollbar-thumb {
+            background: #a8a8a8;
+            border-radius: 4px;
         }
         .scrollable-content::-webkit-scrollbar-thumb:hover,
-        #cart-list::-webkit-scrollbar-thumb:hover,
-        #order-details-content::-webkit-scrollbar-thumb:hover,
-        #customer-history-content::-webkit-scrollbar-thumb:hover {
-            background: #555;
+        .modal-content::-webkit-scrollbar-thumb:hover {
+            background: #888;
+        }
+        .notification-bell {
+            position: relative;
+        }
+        .notification-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            width: 10px;
+            height: 10px;
+            background-color: #ef4444;
+            border-radius: 50%;
+            border: 2px solid #f7f3f0;
         }
     </style>
 </head>
-<body class="bg-gray-100 flex items-center justify-center min-h-screen">
-    <div class="container bg-white rounded-2xl shadow-xl p-8 m-4">
-        <header class="flex flex-col md:flex-row justify-between items-center mb-6 border-b pb-4">
-            <h1 class="text-3xl font-bold text-gray-800">Deedapit Bakery POS</h1>
-            <div class="mt-4 md:mt-0 flex gap-4">
-                <button id="cashier-btn" class="text-gray-600 hover:text-purple-600 transition-colors duration-200 font-medium pb-2 active-tab">Cashier</button>
-                <button id="admin-btn" class="text-gray-600 hover:text-purple-600 transition-colors duration-200 font-medium pb-2">Admin</button>
-            </div>
-        </header>
+<body class="bg-gray-100 flex flex-col min-h-screen">
+    <div class="flex-grow flex flex-col items-center p-4">
 
-        <div id="cashier-view" class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div class="md:col-span-2 bg-gray-50 rounded-lg p-6 shadow-md">
-                <h2 class="text-2xl font-semibold text-gray-800 mb-4">Order Taking</h2>
-                <div class="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-6" id="menu-cards">
+        <!-- Main Container -->
+        <div class="container bg-white shadow-xl rounded-2xl p-6 md:p-8 w-full h-full flex flex-col">
+
+            <!-- Header and Navigation -->
+            <header class="flex flex-col md:flex-row items-center justify-between pb-6 mb-6 border-b border-gray-200">
+                <h1 class="text-3xl font-bold text-gray-800 mb-4 md:mb-0">Deedapit Bakery</h1>
+                <nav class="flex space-x-4 md:space-x-6 text-gray-500 font-medium text-lg">
+                    <button id="cashier-tab" data-view="cashier" class="tab-button hover:text-purple-600 transition-colors duration-200 active-tab">Cashier</button>
+                    <button id="sales-tab" data-view="sales" class="tab-button hover:text-purple-600 transition-colors duration-200">Sales</button>
+                    <button id="expenses-tab" data-view="expenses" class="tab-button hover:text-purple-600 transition-colors duration-200">Expenses</button>
+                    <button id="menu-tab" data-view="menu" class="tab-button hover:text-purple-600 transition-colors duration-200">Menu</button>
+                    <button id="preorder-tab" data-view="preorder" class="tab-button hover:text-purple-600 transition-colors duration-200">Pre-orders</button>
+                    <div class="notification-bell">
+                        <button id="notification-btn" class="text-gray-500 hover:text-purple-600 transition-colors duration-200">
+                            <i class="fas fa-bell"></i>
+                        </button>
+                        <span id="notification-badge" class="notification-badge hidden"></span>
                     </div>
-            </div>
+                </nav>
+            </header>
 
-            <div class="md:col-span-1 bg-white rounded-lg p-6 shadow-md border border-gray-200">
-                <h2 class="text-2xl font-semibold text-gray-800 mb-4">Cart</h2>
-                <ul id="cart-list" class="space-y-4 max-h-60 overflow-y-auto mb-4">
-                    </ul>
-                <div class="text-lg font-bold text-gray-800 mt-4 mb-4">
-                    Total: <span id="cart-total">RM 0.00</span>
+            <!-- Main Content Area -->
+            <main id="content-container" class="flex-grow">
+                <!-- Views will be rendered here dynamically -->
+                <div id="cashier-view" class="view">
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <!-- Menu Panel -->
+                        <div class="lg:col-span-2 bg-gray-50 p-4 rounded-xl shadow-inner scrollable-content">
+                            <div class="flex justify-between items-center mb-4">
+                                <h2 class="text-xl font-semibold text-gray-700">Menu Items</h2>
+                                <div class="relative">
+                                    <input type="text" id="menu-search" placeholder="Search menu..." class="px-4 py-2 w-full max-w-xs rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500">
+                                </div>
+                            </div>
+                            <div id="menu-cards-container" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                                <!-- Custom Order Card -->
+                                <div id="custom-order-card" class="bg-purple-200 rounded-xl shadow-md p-4 flex flex-col items-center justify-center cursor-pointer transition-transform duration-200 hover:scale-105 border-2 border-purple-500 border-dashed">
+                                    <i class="fas fa-plus-circle text-purple-600 text-3xl mb-2"></i>
+                                    <h3 class="text-md font-semibold text-purple-800 text-center">Custom Order</h3>
+                                    <p class="text-sm text-purple-600 mt-1">Create a unique item</p>
+                                </div>
+                                <!-- Menu cards will be dynamically inserted here -->
+                            </div>
+                        </div>
+
+                        <!-- Cart Panel -->
+                        <div class="lg:col-span-1 bg-white p-6 rounded-xl shadow-lg flex flex-col">
+                            <h2 class="text-2xl font-bold text-gray-800 mb-4">Current Order</h2>
+                            <div id="cart-container" class="flex-grow scrollable-content border-b border-gray-200 pb-4 mb-4">
+                                <!-- Cart items will be dynamically inserted here -->
+                            </div>
+                            <div class="text-right text-lg font-semibold text-gray-700">
+                                Total: <span id="cart-total" class="font-bold text-purple-600">RM 0.00</span>
+                            </div>
+                            <div class="mt-4 flex flex-col space-y-2">
+                                <button id="preorder-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 rounded-xl transition duration-300">
+                                    <i class="fas fa-calendar-alt mr-2"></i> Place Pre-Order
+                                </button>
+                                <button id="checkout-btn" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-xl transition duration-300">
+                                    <i class="fas fa-shopping-cart mr-2"></i> Checkout
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="mt-4">
-                    <label for="order-type" class="block text-sm font-medium text-gray-700">Order Type</label>
-                    <select id="order-type" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500">
-                        <option value="walk-in">Walk-in</option>
-                        <option value="online">Online</option>
-                    </select>
+
+                <!-- Sales View -->
+                <div id="sales-view" class="view hidden">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-4">Sales Records</h2>
+                    <div class="flex justify-between items-center mb-4">
+                        <div class="flex items-center space-x-2">
+                            <label for="sales-filter" class="text-gray-600">Filter by:</label>
+                            <select id="sales-filter" class="px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500">
+                                <option value="today">Today</option>
+                                <option value="week">This Week</option>
+                                <option value="month">This Month</option>
+                                <option value="all">All Time</option>
+                            </select>
+                        </div>
+                        <button id="export-sales-btn" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
+                            <i class="fas fa-download mr-2"></i> Export CSV
+                        </button>
+                    </div>
+                    <div class="scrollable-content bg-white p-4 rounded-xl shadow-lg">
+                        <div id="sales-records-container">
+                            <!-- Sales records will be dynamically inserted here -->
+                        </div>
+                    </div>
                 </div>
-                <div class="mt-4">
-                    <label for="customer-contact" class="block text-sm font-medium text-gray-700">Customer Contact (Optional)</label>
-                    <input type="text" id="customer-contact-input" placeholder="e.g. 0123456789" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500">
+
+                <!-- Expenses View -->
+                <div id="expenses-view" class="view hidden">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-4">Expenses</h2>
+                    <div class="flex flex-col md:flex-row md:justify-between items-center mb-4 space-y-4 md:space-y-0 md:space-x-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 w-full">
+                            <input type="text" id="expense-name" placeholder="Expense Name" class="px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500 w-full">
+                            <input type="number" id="expense-price" placeholder="Price (RM)" class="px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500 w-full">
+                            <button id="add-expense-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 rounded-lg transition duration-300 w-full">
+                                <i class="fas fa-plus mr-2"></i> Add Expense
+                            </button>
+                        </div>
+                        <button id="export-expenses-btn" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg transition duration-300 w-full md:w-auto">
+                            <i class="fas fa-download mr-2"></i> Export CSV
+                        </button>
+                    </div>
+                    <div class="scrollable-content bg-white p-4 rounded-xl shadow-lg mt-4">
+                        <div id="expenses-container" class="space-y-2">
+                            <!-- Expenses will be dynamically inserted here -->
+                        </div>
+                    </div>
                 </div>
-                <div class="mt-4">
-                    <label for="customer-name" class="block text-sm font-medium text-gray-700">Customer Name (Optional)</label>
-                    <input type="text" id="customer-name-input" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500">
+
+                <!-- Menu Management View -->
+                <div id="menu-view" class="view hidden">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-4">Menu Management</h2>
+                    <div class="flex flex-col md:flex-row md:justify-between items-center mb-4 space-y-4 md:space-y-0 md:space-x-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 w-full">
+                            <input type="text" id="menu-item-name" placeholder="Item Name" class="px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500 w-full">
+                            <input type="number" id="menu-item-price" placeholder="Price (RM)" class="px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500 w-full">
+                            <input type="text" id="menu-item-image" placeholder="Image URL" class="px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500 w-full">
+                            <input type="number" id="menu-item-stock" placeholder="Stock" class="px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500 w-full">
+                        </div>
+                        <button id="add-menu-item-btn" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300 w-full md:w-auto">
+                            <i class="fas fa-plus mr-2"></i> Add Menu Item
+                        </button>
+                    </div>
+                    <div class="scrollable-content bg-white p-4 rounded-xl shadow-lg mt-4">
+                        <div id="menu-list-container" class="space-y-2">
+                            <!-- Menu items will be dynamically inserted here -->
+                        </div>
+                    </div>
                 </div>
-                <div class="mt-4 flex items-center gap-2">
-                    <input type="checkbox" id="pre-order-toggle" class="rounded text-purple-600 focus:ring-purple-500">
-                    <label for="pre-order-toggle" class="text-sm font-medium text-gray-700">Pre-Order</label>
+
+                <!-- Pre-orders View -->
+                <div id="preorder-view" class="view hidden">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-4">Pre-orders</h2>
+                    <div class="scrollable-content bg-white p-4 rounded-xl shadow-lg">
+                        <div id="preorder-list-container" class="space-y-2">
+                            <!-- Pre-orders will be dynamically inserted here -->
+                        </div>
+                    </div>
                 </div>
-                <div id="pre-order-date-time" class="mt-4 hidden">
-                    <label for="pre-order-date" class="block text-sm font-medium text-gray-700">Pre-Order Date</label>
-                    <input type="date" id="pre-order-date" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500">
-                    <label for="pre-order-time" class="block text-sm font-medium text-gray-700 mt-2">Pre-Order Time</label>
-                    <input type="time" id="pre-order-time" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500">
-                    <label for="deposit-input" class="block text-sm font-medium text-gray-700 mt-2">Deposit (RM)</label>
-                    <input type="number" step="0.01" id="deposit-input" placeholder="e.g. 5.00" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500">
-                </div>
-                <div class="flex gap-4 mt-6">
-                    <button id="save-order-btn" class="flex-1 bg-purple-600 text-white font-bold py-3 px-4 rounded-md shadow-lg hover:bg-purple-700 transition-colors duration-200">
-                        <span id="save-btn-text">Save Order</span>
-                    </button>
-                    <button id="clear-cart-btn" class="bg-gray-200 text-gray-700 font-bold py-3 px-4 rounded-md shadow-lg hover:bg-gray-300 transition-colors duration-200">Clear</button>
-                </div>
-                <button id="view-calendar-btn" class="mt-4 w-full bg-blue-500 text-white font-bold py-3 px-4 rounded-md shadow-lg hover:bg-blue-600 transition-colors duration-200">View Pre-orders</button>
-            </div>
+            </main>
         </div>
+    </div>
 
-        <div id="admin-view" class="hidden">
-            <h2 class="text-2xl font-semibold text-gray-800 mb-4">Admin Dashboard</h2>
-            <div class="flex border-b border-gray-200 mb-6">
-                <button id="sales-tab" class="py-2 px-4 font-medium text-gray-600 hover:text-purple-600 transition-colors duration-200 active-tab">Sales Records</button>
-                <button id="expenses-tab" class="py-2 px-4 font-medium text-gray-600 hover:text-purple-600 transition-colors duration-200">Manage Expenses</button>
-                <button id="menu-tab" class="py-2 px-4 font-medium text-gray-600 hover:text-purple-600 transition-colors duration-200">Manage Menu</button>
-                <button id="customers-tab" class="py-2 px-4 font-medium text-gray-600 hover:text-purple-600 transition-colors duration-200">Manage Customers</button>
+    <!-- Modals -->
+    <!-- Checkout Modal -->
+    <div id="checkout-modal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center">
+        <div class="modal-content bg-white p-6 rounded-lg shadow-xl max-w-lg w-full m-4">
+            <h3 class="text-2xl font-bold mb-4">Checkout</h3>
+            <div id="checkout-summary" class="mb-4 text-lg"></div>
+            <div class="mb-4">
+                <label class="block text-gray-700 font-bold mb-2">Payment Method</label>
+                <select id="payment-method" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
+                    <option value="Cash">Cash</option>
+                    <option value="Card">Card</option>
+                    <option value="Online Transfer">Online Transfer</option>
+                </select>
             </div>
-            <div id="sales-content" class="scrollable-content p-4">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-xl font-semibold">Sales Records</h3>
-                    <div class="flex space-x-2">
-                        <button id="sales-filter-daily" class="bg-gray-200 hover:bg-gray-300 text-gray-700 text-sm font-medium py-1 px-3 rounded-full">Daily</button>
-                        <button id="sales-filter-monthly" class="bg-gray-200 hover:bg-gray-300 text-gray-700 text-sm font-medium py-1 px-3 rounded-full">Monthly</button>
-                        <button id="sales-filter-yearly" class="bg-gray-200 hover:bg-gray-300 text-gray-700 text-sm font-medium py-1 px-3 rounded-full">Yearly</button>
-                        <button id="export-sales-btn" class="bg-green-500 text-white font-medium py-1 px-3 rounded-full hover:bg-green-600">Export</button>
-                    </div>
-                </div>
-                <div id="sales-records-list">
-                    </div>
+            <div class="mb-4">
+                <label class="block text-gray-700 font-bold mb-2">Customer Contact (Optional)</label>
+                <input type="text" id="customer-contact" placeholder="e.g., +60123456789" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
             </div>
-            
-            <div id="expenses-content" class="hidden scrollable-content p-4">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-xl font-semibold">Manage Expenses</h3>
-                    <button id="export-expenses-btn" class="bg-green-500 text-white font-medium py-1 px-3 rounded-full hover:bg-green-600">Export</button>
-                </div>
-                <form id="add-expense-form" class="bg-white p-4 rounded-lg shadow-sm mb-4">
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                        <div>
-                            <label for="expense-name" class="block text-sm font-medium text-gray-700">Expense Name</label>
-                            <input type="text" id="expense-name" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
-                        </div>
-                        <div>
-                            <label for="expense-price" class="block text-sm font-medium text-gray-700">Price (RM)</label>
-                            <input type="number" step="0.01" id="expense-price" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
-                        </div>
-                        <div>
-                            <label for="expense-unit" class="block text-sm font-medium text-gray-700">Unit (kg, pcs, etc)</label>
-                            <input type="text" id="expense-unit" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
-                        </div>
-                        <div>
-                            <label for="expense-quantity" class="block text-sm font-medium text-gray-700">Quantity</label>
-                            <input type="number" step="0.01" id="expense-quantity" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
-                        </div>
-                    </div>
-                    <button type="submit" class="mt-4 bg-purple-600 text-white font-bold py-2 px-4 rounded-md hover:bg-purple-700 transition-colors">Add Expense</button>
-                </form>
-                <div id="expenses-list">
-                    </div>
-            </div>
-
-            <div id="menu-content" class="hidden scrollable-content p-4">
-                <h3 class="text-xl font-semibold mb-4">Manage Menu</h3>
-                <form id="add-menu-item-form" class="bg-white p-4 rounded-lg shadow-sm mb-4">
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        <div>
-                            <label for="item-name" class="block text-sm font-medium text-gray-700">Item Name</label>
-                            <input type="text" id="item-name" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
-                        </div>
-                        <div>
-                            <label for="item-price" class="block text-sm font-medium text-gray-700">Price (RM)</label>
-                            <input type="number" step="0.01" id="item-price" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
-                        </div>
-                        <div>
-                            <label for="item-image" class="block text-sm font-medium text-gray-700">Image URL</label>
-                            <input type="text" id="item-image" placeholder="Paste image link here" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
-                        </div>
-                    </div>
-                    <button type="submit" id="add-menu-item-btn" class="mt-4 bg-purple-600 text-white font-bold py-2 px-4 rounded-md hover:bg-purple-700 transition-colors">Add Menu Item</button>
-                </form>
-                <div id="menu-list" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                    </div>
-            </div>
-
-            <div id="customers-content" class="hidden scrollable-content p-4">
-                <h3 class="text-xl font-semibold mb-4">Customer Records</h3>
-                <div id="customer-list">
-                    </div>
+            <div class="flex justify-end space-x-2">
+                <button id="confirm-checkout-btn" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">Confirm</button>
+                <button id="cancel-checkout-btn" class="bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-lg transition duration-300">Cancel</button>
             </div>
         </div>
     </div>
 
-    <div id="orderDetailsModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden justify-center items-center">
-        <div class="bg-white p-6 rounded-lg shadow-xl w-full max-w-lg">
-            <div class="flex justify-between items-center border-b pb-2 mb-4">
-                <h3 class="text-xl font-bold">Order Details</h3>
-                <button id="closeOrderDetailsModalBtn" class="text-gray-500 hover:text-gray-700">&times;</button>
+    <!-- Custom Order Modal -->
+    <div id="custom-order-modal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center">
+        <div class="modal-content bg-white p-6 rounded-lg shadow-xl max-w-lg w-full m-4">
+            <h3 class="text-2xl font-bold mb-4">Create Custom Order</h3>
+            <div class="mb-4">
+                <label class="block text-gray-700 font-bold mb-2">Item Name</label>
+                <input type="text" id="custom-order-name" placeholder="e.g., Vegan Chocolate Cake" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
             </div>
-            <div id="orderDetailsContent" class="max-h-96 overflow-y-auto">
-                </div>
+            <div class="mb-4">
+                <label class="block text-gray-700 font-bold mb-2">Price (RM)</label>
+                <input type="number" id="custom-order-price" placeholder="e.g., 25.50" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
+            </div>
+            <div class="mb-4">
+                <label class="block text-gray-700 font-bold mb-2">Description (Optional)</label>
+                <textarea id="custom-order-description" placeholder="Add a description for the item" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"></textarea>
+            </div>
+            <div class="flex justify-end space-x-2">
+                <button id="add-custom-order-btn" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">Add to Cart</button>
+                <button id="cancel-custom-order-btn" class="bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-lg transition duration-300">Cancel</button>
+            </div>
         </div>
     </div>
-    
-    <div id="customerHistoryModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden justify-center items-center">
-        <div class="bg-white p-6 rounded-lg shadow-xl w-full max-w-lg">
-            <div class="flex justify-between items-center border-b pb-2 mb-4">
-                <h3 class="text-xl font-bold">Customer History</h3>
-                <button id="closeCustomerHistoryModalBtn" class="text-gray-500 hover:text-gray-700">&times;</button>
+
+    <!-- Pre-order Modal -->
+    <div id="preorder-modal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center">
+        <div class="modal-content bg-white p-6 rounded-lg shadow-xl max-w-lg w-full m-4">
+            <h3 class="text-2xl font-bold mb-4">Place Pre-Order</h3>
+            <div id="preorder-summary" class="mb-4 text-lg"></div>
+            <div class="mb-4">
+                <label class="block text-gray-700 font-bold mb-2">Customer Name</label>
+                <input type="text" id="preorder-customer-name" placeholder="Full Name" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
             </div>
-            <div id="customerHistoryContent" class="max-h-96 overflow-y-auto">
-                </div>
+            <div class="mb-4">
+                <label class="block text-gray-700 font-bold mb-2">Customer Contact</label>
+                <input type="text" id="preorder-customer-contact" placeholder="e.g., +60123456789" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
+            </div>
+            <div class="mb-4">
+                <label class="block text-gray-700 font-bold mb-2">Pickup Date</label>
+                <input type="date" id="preorder-pickup-date" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
+            </div>
+            <div class="flex justify-end space-x-2">
+                <button id="confirm-preorder-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg transition duration-300">Confirm Pre-Order</button>
+                <button id="cancel-preorder-btn" class="bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-lg transition duration-300">Cancel</button>
+            </div>
         </div>
     </div>
-    
-    <div id="calendarModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden justify-center items-center">
-        <div class="bg-white p-6 rounded-lg shadow-xl w-full max-w-lg">
-            <div class="flex justify-between items-center border-b pb-2 mb-4">
-                <h3 class="text-xl font-bold">Pre-Order Calendar</h3>
-                <button id="closeCalendarModalBtn" class="text-gray-500 hover:text-gray-700">&times;</button>
+
+    <!-- Notification Modal -->
+    <div id="notification-modal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center">
+        <div class="modal-content bg-white p-6 rounded-lg shadow-xl max-w-md w-full m-4">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-2xl font-bold">Notifications</h3>
+                <button id="close-notification-modal-btn" class="text-gray-500 hover:text-gray-800 transition-colors duration-200">
+                    <i class="fas fa-times"></i>
+                </button>
             </div>
-            <div id="calendar-view">
-                </div>
+            <div id="notification-list" class="space-y-4">
+                <!-- Notifications will be dynamically inserted here -->
+            </div>
         </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getFirestore, collection, addDoc, getDocs, doc, deleteDoc, query, where, onSnapshot, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
-        // Your Firebase configuration
+        import { getFirestore, collection, addDoc, getDocs, doc, onSnapshot, updateDoc, deleteDoc, query, where, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        
+        // Your web app's Firebase configuration
+        // For Firebase JS SDK v7.20.0 and later, measurementId is optional
         const firebaseConfig = {
-              apiKey: "AIzaSyC3hgjIg2p7k2rt-vWJE8V9zdvxl8z6YrY",
-              authDomain: "deedapit-812cc.firebaseapp.com",
-              projectId: "deedapit-812cc",
-              storageBucket: "deedapit-812cc.firebasestorage.app",
-              messagingSenderId: "372463730148",
-              appId: "1:372463730148:web:6776c5c464f22d768b5bf1",
-              measurementId: "G-HYWC5Q8YBX"
+            apiKey: "AIzaSyC3hgjIg2p7k2rt-vWJE8V9zdvxl8z6YrY",
+            authDomain: "deedapit-812cc.firebaseapp.com",
+            projectId: "deedapit-812cc",
+            storageBucket: "deedapit-812cc.firebasestorage.app",
+            messagingSenderId: "372463730148",
+            appId: "1:372463730148:web:6776c5c464f22d768b5bf1"
         };
+        
         // Initialize Firebase
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
-
-        // --- DOM Elements ---
-        const cashierBtn = document.getElementById('cashier-btn');
-        const adminBtn = document.getElementById('admin-btn');
-        const cashierView = document.getElementById('cashier-view');
-        const adminView = document.getElementById('admin-view');
-        const salesTab = document.getElementById('sales-tab');
-        const expensesTab = document.getElementById('expenses-tab');
-        const menuTab = document.getElementById('menu-tab');
-        const customersTab = document.getElementById('customers-tab');
-        const salesContent = document.getElementById('sales-content');
-        const expensesContent = document.getElementById('expenses-content');
-        const menuContent = document.getElementById('menu-content');
-        const customersContent = document.getElementById('customers-content');
-        const menuCards = document.getElementById('menu-cards');
-        const cartList = document.getElementById('cart-list');
-        const cartTotalSpan = document.getElementById('cart-total');
-        const preOrderToggle = document.getElementById('pre-order-toggle');
-        const preOrderDateTime = document.getElementById('pre-order-date-time');
-        const saveOrderBtn = document.getElementById('save-order-btn');
-        const clearCartBtn = document.getElementById('clear-cart-btn');
-        const salesRecordsList = document.getElementById('sales-records-list');
-        const expensesList = document.getElementById('expenses-list');
-        const menuList = document.getElementById('menu-list');
-        const customerList = document.getElementById('customer-list');
-        const addExpenseForm = document.getElementById('add-expense-form');
-        const addMenuItemForm = document.getElementById('add-menu-item-form');
-        const salesFilterDailyBtn = document.getElementById('sales-filter-daily');
-        const salesFilterMonthlyBtn = document.getElementById('sales-filter-monthly');
-        const salesFilterYearlyBtn = document.getElementById('sales-filter-yearly');
-        const exportSalesBtn = document.getElementById('export-sales-btn');
-        const exportExpensesBtn = document.getElementById('export-expenses-btn');
-        const viewCalendarBtn = document.getElementById('view-calendar-btn');
-        const calendarModal = document.getElementById('calendarModal');
-        const closeCalendarModalBtn = document.getElementById('closeCalendarModalBtn');
-        const orderDetailsModal = document.getElementById('orderDetailsModal');
-        const closeOrderDetailsModalBtn = document.getElementById('closeOrderDetailsModalBtn');
-        const orderDetailsContent = document.getElementById('orderDetailsContent');
-        const customerHistoryModal = document.getElementById('customerHistoryModal');
-        const closeCustomerHistoryModalBtn = document.getElementById('closeCustomerHistoryModalBtn');
-        const customerHistoryContent = document.getElementById('customerHistoryContent');
-
-        // --- State Variables ---
-        let cart = [];
+        const auth = getAuth(app);
+        
         let menuItems = [];
+        let cart = [];
         let salesRecords = [];
         let expensesRecords = [];
-        let preOrderRecords = [];
-        let currentSalesFilter = 'daily';
+        let preorderRecords = [];
+        let notifications = [];
+        let currentSalesFilter = 'today';
+        
+        // Elements
+        const views = document.querySelectorAll('.view');
+        const tabButtons = document.querySelectorAll('.tab-button');
+        const contentContainer = document.getElementById('content-container');
+        const menuCardsContainer = document.getElementById('menu-cards-container');
+        const customOrderCard = document.getElementById('custom-order-card');
+        const customOrderModal = document.getElementById('custom-order-modal');
+        const customOrderNameInput = document.getElementById('custom-order-name');
+        const customOrderPriceInput = document.getElementById('custom-order-price');
+        const customOrderDescriptionInput = document.getElementById('custom-order-description');
+        const addCustomOrderBtn = document.getElementById('add-custom-order-btn');
+        const cancelCustomOrderBtn = document.getElementById('cancel-custom-order-btn');
+        const cartContainer = document.getElementById('cart-container');
+        const cartTotalSpan = document.getElementById('cart-total');
+        const checkoutBtn = document.getElementById('checkout-btn');
+        const preorderBtn = document.getElementById('preorder-btn');
+        const checkoutModal = document.getElementById('checkout-modal');
+        const preorderModal = document.getElementById('preorder-modal');
+        const confirmCheckoutBtn = document.getElementById('confirm-checkout-btn');
+        const cancelCheckoutBtn = document.getElementById('cancel-checkout-btn');
+        const confirmPreorderBtn = document.getElementById('confirm-preorder-btn');
+        const cancelPreorderBtn = document.getElementById('cancel-preorder-btn');
+        const checkoutSummary = document.getElementById('checkout-summary');
+        const preorderSummary = document.getElementById('preorder-summary');
+        const customerContactInput = document.getElementById('customer-contact');
+        const preorderCustomerNameInput = document.getElementById('preorder-customer-name');
+        const preorderCustomerContactInput = document.getElementById('preorder-customer-contact');
+        const preorderPickupDateInput = document.getElementById('preorder-pickup-date');
+        const salesRecordsContainer = document.getElementById('sales-records-container');
+        const salesFilterSelect = document.getElementById('sales-filter');
+        const expensesContainer = document.getElementById('expenses-container');
+        const expenseNameInput = document.getElementById('expense-name');
+        const expensePriceInput = document.getElementById('expense-price');
+        const addExpenseBtn = document.getElementById('add-expense-btn');
+        const exportSalesBtn = document.getElementById('export-sales-btn');
+        const exportExpensesBtn = document.getElementById('export-expenses-btn');
+        const menuListContainer = document.getElementById('menu-list-container');
+        const menuItemNameInput = document.getElementById('menu-item-name');
+        const menuItemPriceInput = document.getElementById('menu-item-price');
+        const menuItemImageInput = document.getElementById('menu-item-image');
+        const menuItemStockInput = document.getElementById('menu-item-stock');
+        const addMenuItemBtn = document.getElementById('add-menu-item-btn');
+        const preorderListContainer = document.getElementById('preorder-list-container');
+        const menuSearchInput = document.getElementById('menu-search');
+        const notificationBtn = document.getElementById('notification-btn');
+        const notificationModal = document.getElementById('notification-modal');
+        const notificationList = document.getElementById('notification-list');
+        const notificationBadge = document.getElementById('notification-badge');
+        const closeNotificationModalBtn = document.getElementById('close-notification-modal-btn');
+        
+        // Initial authentication
+        signInAnonymously(auth).catch(error => console.error("Anonymous sign-in failed:", error));
 
-        // --- View Switching Logic ---
-        function showView(view) {
-            cashierView.classList.add('hidden');
-            adminView.classList.add('hidden');
-            document.querySelectorAll('.active-tab').forEach(el => el.classList.remove('active-tab'));
-
-            if (view === 'cashier') {
-                cashierView.classList.remove('hidden');
-                cashierBtn.classList.add('active-tab');
-            } else if (view === 'admin') {
-                adminView.classList.remove('hidden');
-                adminBtn.classList.add('active-tab');
-                showAdminTab('sales');
-            }
+        // UI Functions
+        function showView(viewId) {
+            views.forEach(view => {
+                view.classList.add('hidden');
+                view.classList.remove('flex');
+            });
+            document.getElementById(`${viewId}-view`).classList.remove('hidden');
+            document.getElementById(`${viewId}-view`).classList.add('flex', 'flex-col');
+            tabButtons.forEach(btn => btn.classList.remove('active-tab'));
+            document.getElementById(`${viewId}-tab`).classList.add('active-tab');
         }
 
-        function showAdminTab(tab) {
-            salesContent.classList.add('hidden');
-            expensesContent.classList.add('hidden');
-            menuContent.classList.add('hidden');
-            customersContent.classList.add('hidden');
-            document.querySelectorAll('#admin-view button').forEach(el => el.classList.remove('active-tab'));
-
-            switch (tab) {
-                case 'sales':
-                    salesContent.classList.remove('hidden');
-                    salesTab.classList.add('active-tab');
-                    fetchSalesRecords();
-                    break;
-                case 'expenses':
-                    expensesContent.classList.remove('hidden');
-                    expensesTab.classList.add('active-tab');
-                    fetchExpenses();
-                    break;
-                case 'menu':
-                    menuContent.classList.remove('hidden');
-                    menuTab.classList.add('active-tab');
-                    fetchMenuItems();
-                    break;
-                case 'customers':
-                    customersContent.classList.remove('hidden');
-                    customersTab.classList.add('active-tab');
-                    fetchCustomers();
-                    break;
+        // Add to cart
+        function addToCart(item) {
+            const existingItem = cart.find(cartItem => cartItem.id === item.id);
+            if (existingItem) {
+                existingItem.quantity += 1;
+            } else {
+                cart.push({ ...item, quantity: 1 });
             }
+            renderCart();
+            checkStockLevel(item.id, (item.stock || 0) - 1);
         }
 
-        // --- Data Fetching from Firestore ---
+        // Render functions
+        function renderMenuCards(filteredItems = menuItems) {
+            // Clear all cards except the custom order card
+            const allCards = menuCardsContainer.querySelectorAll('.dynamic-card');
+            allCards.forEach(card => card.remove());
+            
+            if (filteredItems.length === 0) {
+                const noItemsMessage = document.createElement('p');
+                noItemsMessage.className = "text-center text-gray-500 col-span-full dynamic-card";
+                noItemsMessage.textContent = "No menu items found.";
+                menuCardsContainer.appendChild(noItemsMessage);
+            }
+
+            filteredItems.forEach(item => {
+                const outOfStock = item.stock <= 0;
+                const card = document.createElement('div');
+                card.className = `dynamic-card bg-white rounded-xl shadow-md p-4 flex flex-col items-center cursor-pointer transition-transform duration-200 hover:scale-105 ${outOfStock ? 'opacity-50 cursor-not-allowed' : ''}`;
+                card.setAttribute('data-id', item.id);
+                card.innerHTML = `
+                    <img src="${item.image || 'https://placehold.co/150x150/E9D5FF/A855F7?text=No+Image'}" alt="${item.name}" class="w-24 h-24 rounded-full object-cover mb-2">
+                    <h3 class="text-md font-semibold text-gray-800 text-center">${item.name}</h3>
+                    <p class="text-purple-600 font-bold">RM ${item.price.toFixed(2)}</p>
+                `;
+                if (!outOfStock) {
+                    card.addEventListener('click', () => addToCart(item));
+                }
+                menuCardsContainer.appendChild(card);
+            });
+        }
+
+        function renderCart() {
+            cartContainer.innerHTML = '';
+            let total = 0;
+            if (cart.length === 0) {
+                cartContainer.innerHTML = '<p class="text-center text-gray-500">Cart is empty.</p>';
+            }
+            cart.forEach(item => {
+                const itemTotal = item.price * item.quantity;
+                total += itemTotal;
+                const cartItem = document.createElement('div');
+                cartItem.className = 'flex justify-between items-center bg-gray-50 p-2 rounded-lg mb-2 shadow-inner';
+                cartItem.innerHTML = `
+                    <div>
+                        <p class="font-semibold">${item.name}</p>
+                        <p class="text-sm text-gray-500">RM ${item.price.toFixed(2)} x ${item.quantity}</p>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <span class="font-bold text-purple-600">RM ${itemTotal.toFixed(2)}</span>
+                        <button data-id="${item.id}" data-action="decrease" class="text-gray-500 hover:text-red-500 transition-colors duration-200"><i class="fas fa-minus-circle"></i></button>
+                        <button data-id="${item.id}" data-action="increase" class="text-gray-500 hover:text-green-500 transition-colors duration-200"><i class="fas fa-plus-circle"></i></button>
+                        <button data-id="${item.id}" data-action="remove" class="text-gray-500 hover:text-red-500 transition-colors duration-200"><i class="fas fa-trash"></i></button>
+                    </div>
+                `;
+                cartContainer.appendChild(cartItem);
+            });
+            cartTotalSpan.textContent = `RM ${total.toFixed(2)}`;
+            checkoutBtn.disabled = cart.length === 0;
+            preorderBtn.disabled = cart.length === 0;
+        }
+
+        function renderSalesRecords() {
+            salesRecordsContainer.innerHTML = '';
+            if (salesRecords.length === 0) {
+                salesRecordsContainer.innerHTML = '<p class="text-center text-gray-500">No sales records found.</p>';
+                return;
+            }
+            salesRecords.forEach(record => {
+                const salesItem = document.createElement('div');
+                salesItem.className = 'bg-gray-50 p-4 rounded-lg shadow-inner mb-2';
+                salesItem.innerHTML = `
+                    <div class="flex justify-between items-center mb-2">
+                        <p class="font-semibold">Sale #${record.id.substring(0, 8)}</p>
+                        <p class="text-sm text-gray-500">${record.timestamp.toDate().toLocaleString()}</p>
+                    </div>
+                    <p>Total: <span class="font-bold text-purple-600">RM ${record.totalAmount.toFixed(2)}</span></p>
+                    <p class="text-sm text-gray-600">Items: ${record.items.map(item => `${item.name} (x${item.quantity})`).join(', ')}</p>
+                    <p class="text-sm text-gray-600">Payment: ${record.paymentMethod}</p>
+                `;
+                salesRecordsContainer.appendChild(salesItem);
+            });
+        }
+
+        function renderExpenses() {
+            expensesContainer.innerHTML = '';
+            if (expensesRecords.length === 0) {
+                expensesContainer.innerHTML = '<p class="text-center text-gray-500">No expenses recorded.</p>';
+                return;
+            }
+            expensesRecords.forEach(expense => {
+                const expenseItem = document.createElement('div');
+                expenseItem.className = 'bg-gray-50 p-4 rounded-lg shadow-inner flex justify-between items-center mb-2';
+                expenseItem.innerHTML = `
+                    <div>
+                        <p class="font-semibold">${expense.name}</p>
+                        <p class="text-sm text-gray-500">RM ${expense.price.toFixed(2)} - ${expense.timestamp.toDate().toLocaleDateString()}</p>
+                    </div>
+                    <div>
+                        <button data-id="${expense.id}" data-action="edit-expense" class="text-blue-500 hover:text-blue-700 transition-colors duration-200 mr-2"><i class="fas fa-edit"></i></button>
+                        <button data-id="${expense.id}" data-action="delete-expense" class="text-red-500 hover:text-red-700 transition-colors duration-200"><i class="fas fa-trash"></i></button>
+                    </div>
+                `;
+                expensesContainer.appendChild(expenseItem);
+            });
+        }
+
+        function renderMenuList() {
+            menuListContainer.innerHTML = '';
+            if (menuItems.length === 0) {
+                menuListContainer.innerHTML = '<p class="text-center text-gray-500">No menu items found.</p>';
+                return;
+            }
+            menuItems.forEach(item => {
+                const listItem = document.createElement('div');
+                listItem.className = 'bg-gray-50 p-4 rounded-lg shadow-inner flex justify-between items-center mb-2';
+                listItem.innerHTML = `
+                    <div class="flex-grow">
+                        <p class="font-semibold">${item.name}</p>
+                        <p class="text-sm text-gray-500">RM ${item.price.toFixed(2)} | Stock: ${item.stock}</p>
+                    </div>
+                    <div>
+                        <button data-id="${item.id}" data-action="edit-menu-item" class="text-blue-500 hover:text-blue-700 transition-colors duration-200 mr-2"><i class="fas fa-edit"></i></button>
+                        <button data-id="${item.id}" data-action="delete-menu-item" class="text-red-500 hover:text-red-700 transition-colors duration-200"><i class="fas fa-trash"></i></button>
+                    </div>
+                `;
+                menuListContainer.appendChild(listItem);
+            });
+        }
+
+        function renderPreorderList() {
+            preorderListContainer.innerHTML = '';
+            if (preorderRecords.length === 0) {
+                preorderListContainer.innerHTML = '<p class="text-center text-gray-500">No pending pre-orders.</p>';
+                return;
+            }
+            preorderRecords.forEach(order => {
+                const listItem = document.createElement('div');
+                listItem.className = 'bg-gray-50 p-4 rounded-lg shadow-inner mb-2';
+                const pickupDate = order.pickupDate.toDate().toLocaleDateString();
+                const due = order.pickupDate.toDate() < new Date();
+                listItem.innerHTML = `
+                    <div class="flex justify-between items-start mb-2">
+                        <div>
+                            <p class="font-semibold">Pre-order for: ${order.customerName}</p>
+                            <p class="text-sm text-gray-500">Contact: ${order.customerContact}</p>
+                        </div>
+                        <span class="text-xs font-semibold px-2 py-1 rounded-full ${due ? 'bg-red-200 text-red-800' : 'bg-green-200 text-green-800'}">
+                            ${due ? 'OVERDUE' : 'DUE'}
+                        </span>
+                    </div>
+                    <p class="text-sm text-gray-600">Pickup Date: ${pickupDate}</p>
+                    <p class="text-sm text-gray-600">Items: ${order.items.map(item => `${item.name} (x${item.quantity})`).join(', ')}</p>
+                    <p class="font-bold text-purple-600">Total: RM ${order.totalAmount.toFixed(2)}</p>
+                    <button data-id="${order.id}" data-action="complete-pre-order" class="mt-2 bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg text-sm transition duration-300">
+                        Mark as Complete
+                    </button>
+                `;
+                preorderListContainer.appendChild(listItem);
+            });
+        }
+        
+        function renderNotifications() {
+            notificationList.innerHTML = '';
+            if (notifications.length === 0) {
+                notificationList.innerHTML = '<p class="text-center text-gray-500">No new notifications.</p>';
+                notificationBadge.classList.add('hidden');
+                return;
+            }
+            notificationBadge.classList.remove('hidden');
+            notifications.forEach(note => {
+                const notificationItem = document.createElement('div');
+                notificationItem.className = 'p-4 rounded-lg bg-yellow-50 border border-yellow-200 flex justify-between items-center';
+                notificationItem.innerHTML = `
+                    <div>
+                        <p class="font-semibold">${note.message}</p>
+                        <p class="text-xs text-gray-500 mt-1">${note.timestamp.toDate().toLocaleString()}</p>
+                    </div>
+                    <button data-id="${note.id}" data-action="dismiss-notification" class="text-gray-400 hover:text-gray-600 transition-colors duration-200">
+                        <i class="fas fa-times"></i>
+                    </button>
+                `;
+                notificationList.appendChild(notificationItem);
+            });
+        }
+
+        // Data Management Functions
         async function fetchMenuItems() {
             try {
-                const q = query(collection(db, "menuItems"));
-                const querySnapshot = await getDocs(q);
-                menuItems = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                const snapshot = await getDocs(collection(db, "menuItems"));
+                menuItems = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 renderMenuCards();
                 renderMenuList();
             } catch (e) {
                 console.error("Error fetching menu items: ", e);
             }
         }
-
-        async function fetchSalesRecords(filter = currentSalesFilter) {
-            let records = [];
-            let q = collection(db, "salesRecords");
-            
-            // Filtering logic
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            
-            const startOfPeriod = new Date();
-
-            switch (filter) {
-                case 'daily':
-                    startOfPeriod.setHours(0, 0, 0, 0);
-                    break;
-                case 'monthly':
-                    startOfPeriod.setDate(1);
-                    startOfPeriod.setHours(0, 0, 0, 0);
-                    break;
-                case 'yearly':
-                    startOfPeriod.setMonth(0);
-                    startOfPeriod.setDate(1);
-                    startOfPeriod.setHours(0, 0, 0, 0);
-                    break;
-            }
-
-            q = query(q, where("timestamp", ">=", startOfPeriod));
-            
+        
+        async function fetchSalesRecords(filter) {
             try {
-                const querySnapshot = await getDocs(q);
-                records = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                salesRecords = records.sort((a, b) => b.timestamp - a.timestamp); // Sort by most recent
+                let q = collection(db, "salesRecords");
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                let startDate = Timestamp.fromDate(today);
+                
+                if (filter === 'week') {
+                    const firstDayOfWeek = new Date(today.setDate(today.getDate() - today.getDay()));
+                    startDate = Timestamp.fromDate(firstDayOfWeek);
+                } else if (filter === 'month') {
+                    const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+                    startDate = Timestamp.fromDate(firstDayOfMonth);
+                }
+                
+                if (filter !== 'all') {
+                    q = query(q, where("timestamp", ">=", startDate));
+                }
+                
+                const snapshot = await getDocs(q);
+                salesRecords = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 renderSalesRecords();
             } catch (e) {
                 console.error("Error fetching sales records: ", e);
@@ -399,662 +629,435 @@
 
         async function fetchExpenses() {
             try {
-                const q = query(collection(db, "expenses"));
-                const querySnapshot = await getDocs(q);
-                expensesRecords = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                const snapshot = await getDocs(collection(db, "expenses"));
+                expensesRecords = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 renderExpenses();
             } catch (e) {
                 console.error("Error fetching expenses: ", e);
             }
         }
-
-        async function fetchCustomers() {
-            try {
-                const salesSnapshot = await getDocs(collection(db, "salesRecords"));
-                const preOrdersSnapshot = await getDocs(collection(db, "preOrders"));
-                const allOrders = [...salesSnapshot.docs, ...preOrdersSnapshot.docs];
-                
-                const uniqueCustomers = {};
-                allOrders.forEach(doc => {
-                    const data = doc.data();
-                    if (data.customerContact) {
-                        uniqueCustomers[data.customerContact] = {
-                            name: data.customerName,
-                            contact: data.customerContact
-                        };
-                    }
-                });
-
-                const customers = Object.values(uniqueCustomers);
-                renderCustomers(customers);
-            } catch (e) {
-                console.error("Error fetching customers: ", e);
-            }
-        }
-
+        
         async function fetchPreOrders() {
             try {
                 const q = query(collection(db, "preOrders"), where("completed", "==", false));
-                const querySnapshot = await getDocs(q);
-                preOrderRecords = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                renderCalendar();
+                const snapshot = await getDocs(q);
+                preorderRecords = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderPreorderList();
             } catch (e) {
                 console.error("Error fetching pre-orders: ", e);
             }
         }
 
-        // --- Data Rendering ---
-        function renderMenuCards() {
-            menuCards.innerHTML = '';
-            menuItems.forEach(item => {
-                const card = document.createElement('div');
-                card.className = 'bg-white p-4 rounded-lg shadow-md cursor-pointer hover:shadow-lg transition-shadow duration-200';
-                card.innerHTML = `
-                    <img src="${item.image || 'https://via.placeholder.com/150'}" alt="${item.name}" class="w-full h-32 object-cover rounded-md mb-2">
-                    <h3 class="font-semibold text-lg">${item.name}</h3>
-                    <p class="text-gray-600">RM ${item.price.toFixed(2)}</p>
-                `;
-                card.addEventListener('click', () => addItemToCart(item));
-                menuCards.appendChild(card);
-            });
-        }
-
-        function renderCart() {
-            cartList.innerHTML = '';
-            let total = 0;
-            if (cart.length === 0) {
-                cartList.innerHTML = '<li class="text-gray-500 text-center">Cart is empty</li>';
-            } else {
-                cart.forEach(item => {
-                    const listItem = document.createElement('li');
-                    listItem.className = 'flex justify-between items-center bg-gray-100 p-3 rounded-md';
-                    listItem.innerHTML = `
-                        <div class="flex-1">
-                            <h4 class="font-medium">${item.name}</h4>
-                            <p class="text-sm text-gray-600">RM ${item.price.toFixed(2)} x ${item.quantity}</p>
-                        </div>
-                        <div class="flex items-center space-x-2">
-                            <button data-id="${item.id}" data-action="decrement" class="bg-gray-200 text-gray-700 w-6 h-6 rounded-full">-</button>
-                            <span class="font-bold">${item.quantity}</span>
-                            <button data-id="${item.id}" data-action="increment" class="bg-gray-200 text-gray-700 w-6 h-6 rounded-full">+</button>
-                            <button data-id="${item.id}" data-action="remove" class="text-red-500 ml-2">&times;</button>
-                        </div>
-                    `;
-                    cartList.appendChild(listItem);
-                    total += item.price * item.quantity;
-                });
-            }
-            cartTotalSpan.textContent = `RM ${total.toFixed(2)}`;
-        }
-
-        function renderSalesRecords() {
-            salesRecordsList.innerHTML = '';
-            if (salesRecords.length === 0) {
-                salesRecordsList.innerHTML = '<p class="text-center text-gray-500">No sales records found for this period.</p>';
-                return;
-            }
-            const table = document.createElement('table');
-            table.className = 'w-full text-left table-auto';
-            table.innerHTML = `
-                <thead>
-                    <tr class="bg-gray-200 text-gray-600 uppercase text-sm leading-normal">
-                        <th class="py-3 px-6 text-left">Date</th>
-                        <th class="py-3 px-6 text-left">Order ID</th>
-                        <th class="py-3 px-6 text-left">Total</th>
-                        <th class="py-3 px-6 text-center">Actions</th>
-                    </tr>
-                </thead>
-                <tbody class="text-gray-600 text-sm font-light"></tbody>
-            `;
-            const tbody = table.querySelector('tbody');
-            salesRecords.forEach(record => {
-                const row = document.createElement('tr');
-                row.className = 'border-b border-gray-200 hover:bg-gray-100';
-                const date = new Date(record.timestamp.seconds * 1000).toLocaleString();
-                row.innerHTML = `
-                    <td class="py-3 px-6 whitespace-nowrap">${date}</td>
-                    <td class="py-3 px-6">${record.id}</td>
-                    <td class="py-3 px-6">RM ${record.total.toFixed(2)}</td>
-                    <td class="py-3 px-6 text-center">
-                        <button data-id="${record.id}" data-action="view-sales" class="text-sm bg-blue-500 text-white py-1 px-2 rounded hover:bg-blue-600">View</button>
-                    </td>
-                `;
-                tbody.appendChild(row);
-            });
-            salesRecordsList.appendChild(table);
-        }
-
-        function renderExpenses() {
-            expensesList.innerHTML = '';
-            if (expensesRecords.length === 0) {
-                expensesList.innerHTML = '<p class="text-center text-gray-500">No expenses records found.</p>';
-                return;
-            }
-            const table = document.createElement('table');
-            table.className = 'w-full text-left table-auto';
-            table.innerHTML = `
-                <thead>
-                    <tr class="bg-gray-200 text-gray-600 uppercase text-sm leading-normal">
-                        <th class="py-3 px-6 text-left">Date</th>
-                        <th class="py-3 px-6 text-left">Name</th>
-                        <th class="py-3 px-6 text-left">Total</th>
-                        <th class="py-3 px-6 text-center">Actions</th>
-                    </tr>
-                </thead>
-                <tbody class="text-gray-600 text-sm font-light"></tbody>
-            `;
-            const tbody = table.querySelector('tbody');
-            expensesRecords.forEach(expense => {
-                const row = document.createElement('tr');
-                row.className = 'border-b border-gray-200 hover:bg-gray-100';
-                const date = new Date(expense.timestamp.seconds * 1000).toLocaleDateString();
-                row.innerHTML = `
-                    <td class="py-3 px-6 whitespace-nowrap">${date}</td>
-                    <td class="py-3 px-6">${expense.name}</td>
-                    <td class="py-3 px-6">RM ${expense.total.toFixed(2)}</td>
-                    <td class="py-3 px-6 text-center">
-                        <button data-id="${expense.id}" data-action="delete-expense" class="text-sm bg-red-500 text-white py-1 px-2 rounded hover:bg-red-600">Delete</button>
-                    </td>
-                `;
-                tbody.appendChild(row);
-            });
-            expensesList.appendChild(table);
-        }
-
-        function renderMenuList() {
-            menuList.innerHTML = '';
-            menuItems.forEach(item => {
-                const card = document.createElement('div');
-                card.className = 'bg-white p-4 rounded-lg shadow-md';
-                card.innerHTML = `
-                    <img src="${item.image || 'https://via.placeholder.com/150'}" alt="${item.name}" class="w-full h-24 object-cover rounded-md mb-2">
-                    <h4 class="font-semibold text-md">${item.name}</h4>
-                    <p class="text-gray-600 text-sm">RM ${item.price.toFixed(2)}</p>
-                    <button data-id="${item.id}" data-action="delete-menu-item" class="mt-2 text-sm bg-red-500 text-white py-1 px-2 rounded hover:bg-red-600">Delete</button>
-                `;
-                menuList.appendChild(card);
-            });
-        }
-
-        function renderCustomers(customers) {
-            customerList.innerHTML = '';
-            if (customers.length === 0) {
-                customerList.innerHTML = '<p class="text-center text-gray-500">No customer records found.</p>';
-                return;
-            }
-            const table = document.createElement('table');
-            table.className = 'w-full text-left table-auto';
-            table.innerHTML = `
-                <thead>
-                    <tr class="bg-gray-200 text-gray-600 uppercase text-sm leading-normal">
-                        <th class="py-3 px-6 text-left">Name</th>
-                        <th class="py-3 px-6 text-left">Contact</th>
-                        <th class="py-3 px-6 text-center">Actions</th>
-                    </tr>
-                </thead>
-                <tbody class="text-gray-600 text-sm font-light"></tbody>
-            `;
-            const tbody = table.querySelector('tbody');
-            customers.forEach(customer => {
-                const row = document.createElement('tr');
-                row.className = 'border-b border-gray-200 hover:bg-gray-100';
-                row.innerHTML = `
-                    <td class="py-3 px-6 whitespace-nowrap">${customer.name || 'N/A'}</td>
-                    <td class="py-3 px-6">${customer.contact || 'N/A'}</td>
-                    <td class="py-3 px-6 text-center">
-                        <button data-contact="${customer.contact}" data-action="view-history" class="text-sm bg-blue-500 text-white py-1 px-2 rounded hover:bg-blue-600">View History</button>
-                    </td>
-                `;
-                tbody.appendChild(row);
-            });
-            customerList.appendChild(table);
-        }
-
-        function renderCalendar() {
-            const calendarEl = document.getElementById('calendar-view');
-            calendarEl.innerHTML = '';
-            
-            const groupedByDate = preOrderRecords.reduce((acc, order) => {
-                const dateKey = order.preOrderDate;
-                if (!acc[dateKey]) {
-                    acc[dateKey] = [];
-                }
-                acc[dateKey].push(order);
-                return acc;
-            }, {});
-
-            if (Object.keys(groupedByDate).length === 0) {
-                calendarEl.innerHTML = '<p class="text-center text-gray-500">No pending pre-orders.</p>';
-                return;
-            }
-            
-            for (const date in groupedByDate) {
-                const dateHeader = document.createElement('h4');
-                dateHeader.className = 'text-lg font-bold mt-4 mb-2';
-                dateHeader.textContent = new Date(date).toDateString();
-                calendarEl.appendChild(dateHeader);
-
-                const list = document.createElement('ul');
-                list.className = 'space-y-2';
-                groupedByDate[date].forEach(order => {
-                    const listItem = document.createElement('li');
-                    listItem.className = 'bg-gray-100 p-3 rounded-md flex justify-between items-center';
-                    listItem.innerHTML = `
-                        <div>
-                            <p class="font-medium">${order.customerName || 'N/A'}</p>
-                            <p class="text-sm text-gray-600">${order.preOrderTime || 'N/A'} - RM ${order.total.toFixed(2)}</p>
-                            <p class="text-xs text-gray-400">Deposit: RM ${order.deposit.toFixed(2)}</p>
-                        </div>
-                        <button data-id="${order.id}" data-action="complete-pre-order" class="text-sm bg-green-500 text-white py-1 px-2 rounded hover:bg-green-600">Complete</button>
-                    `;
-                    list.appendChild(listItem);
-                });
-                calendarEl.appendChild(list);
-            }
-        }
-
-        // --- Cart and Order Logic ---
-        function addItemToCart(item) {
-            const existingItem = cart.find(cartItem => cartItem.id === item.id);
-            if (existingItem) {
-                existingItem.quantity++;
-            } else {
-                cart.push({ ...item, quantity: 1 });
-            }
-            renderCart();
-        }
-
-        function handleCartAction(event) {
-            const { id, action } = event.target.dataset;
-            const item = cart.find(cartItem => cartItem.id === id);
-            if (!item) return;
-
-            if (action === 'increment') {
-                item.quantity++;
-            } else if (action === 'decrement') {
-                if (item.quantity > 1) {
-                    item.quantity--;
-                } else {
-                    cart = cart.filter(cartItem => cartItem.id !== id);
-                }
-            } else if (action === 'remove') {
-                cart = cart.filter(cartItem => cartItem.id !== id);
-            }
-            renderCart();
-        }
-
-        async function saveOrder() {
-            if (cart.length === 0) {
-                alert('Cart is empty. Please add items to save an order.');
-                return;
-            }
-
-            const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-            const orderType = document.getElementById('order-type').value;
-            const customerContact = document.getElementById('customer-contact-input').value;
-            const customerName = document.getElementById('customer-name-input').value;
-            const isPreOrder = preOrderToggle.checked;
-            const orderData = {
-                items: cart.map(item => ({ id: item.id, name: item.name, price: item.price, quantity: item.quantity })),
-                total,
-                orderType,
-                customerContact: customerContact || null,
-                customerName: customerName || null,
-                timestamp: new Date()
-            };
-
+        async function fetchNotifications() {
             try {
-                if (isPreOrder) {
-                    const preOrderDate = document.getElementById('pre-order-date').value;
-                    const preOrderTime = document.getElementById('pre-order-time').value;
-                    const deposit = parseFloat(document.getElementById('deposit-input').value) || 0;
-                    if (!preOrderDate || !preOrderTime) {
-                        alert('Pre-order date and time are required.');
-                        return;
-                    }
-                    await addDoc(collection(db, "preOrders"), {
-                        ...orderData,
-                        preOrderDate,
-                        preOrderTime,
-                        deposit,
-                        completed: false
-                    });
-                    alert('Pre-order saved successfully!');
-                } else {
-                    await addDoc(collection(db, "salesRecords"), orderData);
-                    alert('Order saved successfully!');
-                }
-                clearCart();
+                const q = query(collection(db, "notifications"), where("read", "==", false));
+                const snapshot = await getDocs(q);
+                notifications = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderNotifications();
             } catch (e) {
-                console.error("Error saving document: ", e);
-                alert('An error occurred while saving the order. Please try again.');
+                console.error("Error fetching notifications: ", e);
             }
         }
 
-        function clearCart() {
-            cart = [];
-            renderCart();
-            document.getElementById('order-type').value = 'walk-in';
-            document.getElementById('customer-contact-input').value = '';
-            document.getElementById('customer-name-input').value = '';
-            preOrderToggle.checked = false;
-            preOrderDateTime.classList.add('hidden');
+        async function addNotification(message) {
+            try {
+                await addDoc(collection(db, "notifications"), {
+                    message: message,
+                    timestamp: Timestamp.now(),
+                    read: false
+                });
+            } catch (e) {
+                console.error("Error adding notification: ", e);
+            }
         }
 
-        // --- Admin Actions ---
-        async function saveExpense(event) {
-            event.preventDefault();
-            const name = document.getElementById('expense-name').value;
-            const price = parseFloat(document.getElementById('expense-price').value);
-            const unit = document.getElementById('expense-unit').value;
-            const quantity = parseFloat(document.getElementById('expense-quantity').value);
-            const total = price * quantity;
+        async function dismissNotification(id) {
+            try {
+                const noteRef = doc(db, "notifications", id);
+                await updateDoc(noteRef, { read: true });
+            } catch (e) {
+                console.error("Error dismissing notification: ", e);
+            }
+        }
 
-            if (isNaN(total)) {
-                alert('Please enter valid numbers for price and quantity.');
+        async function checkStockLevel(itemId, newStock) {
+            const item = menuItems.find(i => i.id === itemId);
+            if (!item || !item.stock) return;
+            if (newStock <= 5 && newStock > 0) {
+                await addNotification(`Low stock alert: ${item.name} has only ${newStock} left.`);
+            } else if (newStock === 0) {
+                 await addNotification(`Out of stock: ${item.name} is now out of stock.`);
+            }
+        }
+        
+        // CRUD operations
+        async function updateStock(cartItems) {
+            for (const item of cartItems) {
+                // Only update stock for non-custom items
+                const isCustomOrder = item.id.startsWith('custom-order-');
+                if (isCustomOrder) continue;
+
+                const itemRef = doc(db, "menuItems", item.id);
+                try {
+                    await updateDoc(itemRef, {
+                        stock: item.stock - item.quantity
+                    });
+                } catch (e) {
+                    console.error("Error updating stock: ", e);
+                }
+            }
+        }
+
+        async function recordSale(paymentMethod, customerContact = '') {
+            if (cart.length === 0) return;
+            const saleData = {
+                items: cart.map(item => ({ id: item.id, name: item.name, price: item.price, quantity: item.quantity })),
+                totalAmount: cart.reduce((sum, item) => sum + item.price * item.quantity, 0),
+                paymentMethod: paymentMethod,
+                timestamp: Timestamp.now(),
+                customerContact: customerContact
+            };
+            try {
+                await addDoc(collection(db, "salesRecords"), saleData);
+                await updateStock(cart);
+                cart = [];
+                renderCart();
+            } catch (e) {
+                console.error("Error recording sale: ", e);
+            }
+        }
+
+        async function recordPreOrder(customerName, customerContact, pickupDate) {
+            if (cart.length === 0) return;
+            const preorderData = {
+                items: cart.map(item => ({ id: item.id, name: item.name, price: item.price, quantity: item.quantity })),
+                totalAmount: cart.reduce((sum, item) => sum + item.price * item.quantity, 0),
+                customerName: customerName,
+                customerContact: customerContact,
+                pickupDate: Timestamp.fromDate(new Date(pickupDate)),
+                completed: false,
+                timestamp: Timestamp.now()
+            };
+            try {
+                await addDoc(collection(db, "preOrders"), preorderData);
+                cart = [];
+                renderCart();
+            } catch (e) {
+                console.error("Error recording pre-order: ", e);
+            }
+        }
+        
+        async function completePreOrder(id) {
+            try {
+                const preorderRef = doc(db, "preOrders", id);
+                const preorderDoc = await getDoc(preorderRef);
+                const preorderData = preorderDoc.data();
+                
+                const saleData = {
+                    items: preorderData.items,
+                    totalAmount: preorderData.totalAmount,
+                    paymentMethod: "Pre-order",
+                    timestamp: Timestamp.now(),
+                    customerContact: preorderData.customerContact
+                };
+                
+                await addDoc(collection(db, "salesRecords"), saleData);
+                await updateDoc(preorderRef, { completed: true });
+                await updateStock(preorderData.items);
+                
+                await addNotification(`Pre-order for ${preorderData.customerName} has been completed.`);
+                
+            } catch (e) {
+                console.error("Error completing pre-order: ", e);
+            }
+        }
+
+        async function saveExpense() {
+            const name = expenseNameInput.value;
+            const price = parseFloat(expensePriceInput.value);
+            if (!name || isNaN(price) || price <= 0) {
+                console.error("Invalid expense input");
                 return;
             }
-
             try {
                 await addDoc(collection(db, "expenses"), {
                     name,
                     price,
-                    unit,
-                    quantity,
-                    total,
-                    timestamp: new Date()
+                    timestamp: Timestamp.now()
                 });
-                alert('Expense added successfully!');
-                addExpenseForm.reset();
-                fetchExpenses(); // Refresh the list
+                expenseNameInput.value = '';
+                expensePriceInput.value = '';
             } catch (e) {
                 console.error("Error adding expense: ", e);
-                alert('Error adding expense. Please try again.');
-            }
-        }
-
-        async function deleteExpense(expenseId) {
-            if (confirm('Are you sure you want to delete this expense record?')) {
-                try {
-                    await deleteDoc(doc(db, "expenses", expenseId));
-                    alert('Expense deleted successfully!');
-                    fetchExpenses();
-                } catch (e) {
-                    console.error("Error deleting expense: ", e);
-                    alert('Error deleting expense. Please try again.');
-                }
             }
         }
         
-        async function saveMenuItem(event) {
-            event.preventDefault();
-            const name = document.getElementById('item-name').value;
-            const price = parseFloat(document.getElementById('item-price').value);
-            const image = document.getElementById('item-image').value;
-
-            if (isNaN(price)) {
-                alert('Please enter a valid price.');
+        async function saveMenuItem() {
+            const name = menuItemNameInput.value;
+            const price = parseFloat(menuItemPriceInput.value);
+            const image = menuItemImageInput.value;
+            const stock = parseInt(menuItemStockInput.value);
+            if (!name || isNaN(price) || price <= 0 || isNaN(stock) || stock < 0) {
+                console.error("Invalid menu item input");
                 return;
             }
-
             try {
                 await addDoc(collection(db, "menuItems"), {
                     name,
                     price,
-                    image
+                    image,
+                    stock
                 });
-                alert('Menu item added successfully!');
-                addMenuItemForm.reset();
-                fetchMenuItems(); // Refresh the menu
+                menuItemNameInput.value = '';
+                menuItemPriceInput.value = '';
+                menuItemImageInput.value = '';
+                menuItemStockInput.value = '';
             } catch (e) {
                 console.error("Error adding menu item: ", e);
-                alert('Error adding menu item. Please try again.');
             }
         }
 
-        async function deleteMenuItem(itemId) {
-            if (confirm('Are you sure you want to delete this menu item?')) {
-                try {
-                    await deleteDoc(doc(db, "menuItems", itemId));
-                    alert('Menu item deleted successfully!');
-                    fetchMenuItems();
-                } catch (e) {
-                    console.error("Error deleting menu item: ", e);
-                    alert('Error deleting menu item. Please try again.');
-                }
-            }
-        }
-
-        async function viewSalesDetails(orderId) {
+        async function deleteMenuItem(id) {
             try {
-                const docRef = doc(db, "salesRecords", orderId);
-                const docSnap = await getDoc(docRef);
-                if (docSnap.exists()) {
-                    const data = docSnap.data();
-                    const itemsHtml = data.items.map(item => `
-                        <div class="border-b border-gray-200 py-2">
-                            <p class="font-medium">${item.name} x ${item.quantity}</p>
-                            <p class="text-sm text-gray-600">RM ${item.price.toFixed(2)} each</p>
-                        </div>
-                    `).join('');
-                    orderDetailsContent.innerHTML = `
-                        <p><strong>Order ID:</strong> ${orderId}</p>
-                        <p><strong>Date:</strong> ${new Date(data.timestamp.seconds * 1000).toLocaleString()}</p>
-                        <p><strong>Total:</strong> RM ${data.total.toFixed(2)}</p>
-                        <p><strong>Customer Name:</strong> ${data.customerName || 'N/A'}</p>
-                        <p><strong>Customer Contact:</strong> ${data.customerContact || 'N/A'}</p>
-                        <h4 class="font-bold mt-4">Items:</h4>
-                        ${itemsHtml}
-                    `;
-                    orderDetailsModal.classList.remove('hidden');
-                    orderDetailsModal.classList.add('flex');
-                } else {
-                    alert("No such order found!");
-                }
+                await deleteDoc(doc(db, "menuItems", id));
             } catch (e) {
-                console.error("Error fetching order details: ", e);
-                alert('Error fetching order details.');
+                console.error("Error deleting menu item: ", e);
             }
         }
         
-        async function viewCustomerHistory(customerContact) {
+        async function deleteExpense(id) {
             try {
-                const salesQ = query(collection(db, "salesRecords"), where("customerContact", "==", customerContact));
-                const preOrderQ = query(collection(db, "preOrders"), where("customerContact", "==", customerContact));
-                
-                const salesSnapshot = await getDocs(salesQ);
-                const preOrderSnapshot = await getDocs(preOrderQ);
-                
-                const history = [...salesSnapshot.docs, ...preOrderSnapshot.docs].map(doc => doc.data());
-                history.sort((a,b) => b.timestamp.seconds - a.timestamp.seconds);
-
-                customerHistoryContent.innerHTML = '';
-                if (history.length === 0) {
-                    customerHistoryContent.innerHTML = '<p class="text-center text-gray-500">No purchase history found for this customer.</p>';
-                } else {
-                    const table = document.createElement('table');
-                    table.className = 'w-full text-left table-auto';
-                    table.innerHTML = `
-                        <thead>
-                            <tr class="bg-gray-200 text-gray-600 uppercase text-sm leading-normal">
-                                <th class="py-3 px-6 text-left">Date</th>
-                                <th class="py-3 px-6 text-left">Total</th>
-                                <th class="py-3 px-6 text-left">Type</th>
-                            </tr>
-                        </thead>
-                        <tbody class="text-gray-600 text-sm font-light"></tbody>
-                    `;
-                    const tbody = table.querySelector('tbody');
-                    history.forEach(record => {
-                        const row = document.createElement('tr');
-                        row.className = 'border-b border-gray-200 hover:bg-gray-100';
-                        row.innerHTML = `
-                            <td class="py-3 px-6 whitespace-nowrap">${new Date(record.timestamp.seconds * 1000).toLocaleString()}</td>
-                            <td class="py-3 px-6">RM ${record.total.toFixed(2)}</td>
-                            <td class="py-3 px-6">${record.preOrderDate ? 'Pre-order' : 'Walk-in/Online'}</td>
-                        `;
-                        tbody.appendChild(row);
-                    });
-                    customerHistoryContent.appendChild(table);
-                }
-                customerHistoryModal.classList.remove('hidden');
-                customerHistoryModal.classList.add('flex');
+                await deleteDoc(doc(db, "expenses", id));
             } catch (e) {
-                console.error("Error fetching customer history: ", e);
-                alert('Error fetching customer history.');
+                console.error("Error deleting expense: ", e);
             }
         }
 
-        async function completePreOrder(orderId) {
-            if (confirm('Mark this pre-order as completed?')) {
-                try {
-                    const orderRef = doc(db, "preOrders", orderId);
-                    await updateDoc(orderRef, {
-                        completed: true
-                    });
-                    alert('Pre-order marked as complete!');
-                    fetchPreOrders(); // Refresh calendar
-                } catch (e) {
-                    console.error("Error completing pre-order: ", e);
-                    alert('Error completing pre-order. Please try again.');
-                }
-            }
-        }
-
-        // --- Export to CSV ---
         function exportToCsv(data, filename) {
-            const replacer = (key, value) => value === null ? '' : value;
-            const header = Object.keys(data[0]);
-            let csv = data.map(row => header.map(fieldName => JSON.stringify(row[fieldName], replacer)).join(','));
-            csv.unshift(header.join(','));
-            csv = csv.join('\r\n');
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-            saveAs(blob, filename);
+            let csvContent = "data:text/csv;charset=utf-8,";
+            if (data.length > 0) {
+                const headers = Object.keys(data[0]).join(',');
+                csvContent += headers + '\n';
+                data.forEach(row => {
+                    const rowData = Object.values(row).map(value => {
+                        if (typeof value === 'string' && value.includes(',')) {
+                            return `"${value}"`;
+                        }
+                        return value;
+                    }).join(',');
+                    csvContent += rowData + '\n';
+                });
+            }
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", filename);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         }
 
-        // --- Event Listeners ---
-        cashierBtn.addEventListener('click', () => showView('cashier'));
-        adminBtn.addEventListener('click', () => showView('admin'));
-        salesTab.addEventListener('click', () => showAdminTab('sales'));
-        expensesTab.addEventListener('click', () => showAdminTab('expenses'));
-        menuTab.addEventListener('click', () => showAdminTab('menu'));
-        customersTab.addEventListener('click', () => showAdminTab('customers'));
-
-        preOrderToggle.addEventListener('change', () => {
-            if (preOrderToggle.checked) {
-                preOrderDateTime.classList.remove('hidden');
-            } else {
-                preOrderDateTime.classList.add('hidden');
-            }
+        // Event Listeners
+        tabButtons.forEach(button => {
+            button.addEventListener('click', (e) => {
+                showView(e.target.dataset.view);
+            });
         });
 
-        cartList.addEventListener('click', handleCartAction);
-        saveOrderBtn.addEventListener('click', saveOrder);
-        clearCartBtn.addEventListener('click', clearCart);
-        addExpenseForm.addEventListener('submit', saveExpense);
-        addMenuItemForm.addEventListener('submit', saveMenuItem);
-
-        salesRecordsList.addEventListener('click', (e) => {
-            const { id, action } = e.target.dataset;
-            if (action === 'view-sales') {
-                viewSalesDetails(id);
-            }
-        });
-
-        expensesList.addEventListener('click', (e) => {
-            const { id, action } = e.target.dataset;
-            if (action === 'delete-expense') {
-                deleteExpense(id);
+        menuCardsContainer.addEventListener('click', (e) => {
+            const card = e.target.closest('[data-id]');
+            if (card) {
+                const item = menuItems.find(i => i.id === card.dataset.id);
+                if (item && item.stock > 0) {
+                    addToCart(item);
+                } else {
+                    console.log("Item out of stock!");
+                }
             }
         });
         
-        menuList.addEventListener('click', (e) => {
-            const { id, action } = e.target.dataset;
-            if (action === 'delete-menu-item') {
-                deleteMenuItem(id);
+        customOrderCard.addEventListener('click', () => {
+            customOrderModal.classList.remove('hidden');
+            customOrderModal.classList.add('flex');
+            customOrderNameInput.value = '';
+            customOrderPriceInput.value = '';
+            customOrderDescriptionInput.value = '';
+        });
+
+        addCustomOrderBtn.addEventListener('click', () => {
+            const name = customOrderNameInput.value;
+            const price = parseFloat(customOrderPriceInput.value);
+            const description = customOrderDescriptionInput.value;
+
+            if (name && !isNaN(price) && price > 0) {
+                const customItem = {
+                    id: 'custom-order-' + Date.now(), // A unique, temporary ID
+                    name: name,
+                    price: price,
+                    description: description,
+                    quantity: 1,
+                    isCustom: true // A flag to identify it as a custom order
+                };
+                addToCart(customItem);
+                customOrderModal.classList.remove('flex');
+                customOrderModal.classList.add('hidden');
+            } else {
+                console.error("Custom order requires a name and a valid price.");
             }
         });
 
-        salesFilterDailyBtn.addEventListener('click', () => {
-            currentSalesFilter = 'daily';
-            fetchSalesRecords('daily');
-        });
-        salesFilterMonthlyBtn.addEventListener('click', () => {
-            currentSalesFilter = 'monthly';
-            fetchSalesRecords('monthly');
-        });
-        salesFilterYearlyBtn.addEventListener('click', () => {
-            currentSalesFilter = 'yearly';
-            fetchSalesRecords('yearly');
+        cancelCustomOrderBtn.addEventListener('click', () => {
+            customOrderModal.classList.remove('flex');
+            customOrderModal.classList.add('hidden');
         });
 
+        cartContainer.addEventListener('click', (e) => {
+            const { id, action } = e.target.closest('button').dataset;
+            const itemIndex = cart.findIndex(item => item.id === id);
+
+            if (itemIndex > -1) {
+                const isCustomOrder = cart[itemIndex].isCustom;
+                const originalItem = menuItems.find(i => i.id === id);
+
+                if (action === 'increase') {
+                    if (isCustomOrder || cart[itemIndex].quantity < originalItem.stock) {
+                        cart[itemIndex].quantity++;
+                    }
+                } else if (action === 'decrease') {
+                    cart[itemIndex].quantity--;
+                } else if (action === 'remove') {
+                    cart.splice(itemIndex, 1);
+                }
+                if (cart[itemIndex] && cart[itemIndex].quantity <= 0) {
+                    cart.splice(itemIndex, 1);
+                }
+                renderCart();
+            }
+        });
+
+        checkoutBtn.addEventListener('click', () => {
+            checkoutSummary.innerHTML = `Total: <span class="font-bold text-purple-600">RM ${cart.reduce((sum, item) => sum + item.price * item.quantity, 0).toFixed(2)}</span>`;
+            checkoutModal.classList.remove('hidden');
+            checkoutModal.classList.add('flex');
+        });
+
+        preorderBtn.addEventListener('click', () => {
+            preorderSummary.innerHTML = `Total: <span class="font-bold text-purple-600">RM ${cart.reduce((sum, item) => sum + item.price * item.quantity, 0).toFixed(2)}</span>`;
+            preorderModal.classList.remove('hidden');
+            preorderModal.classList.add('flex');
+        });
+
+        cancelCheckoutBtn.addEventListener('click', () => {
+            checkoutModal.classList.remove('flex');
+            checkoutModal.classList.add('hidden');
+        });
+
+        cancelPreorderBtn.addEventListener('click', () => {
+            preorderModal.classList.remove('flex');
+            preorderModal.classList.add('hidden');
+        });
+
+        confirmCheckoutBtn.addEventListener('click', () => {
+            const paymentMethod = document.getElementById('payment-method').value;
+            const customerContact = customerContactInput.value;
+            recordSale(paymentMethod, customerContact);
+            checkoutModal.classList.remove('flex');
+            checkoutModal.classList.add('hidden');
+        });
+
+        confirmPreorderBtn.addEventListener('click', () => {
+            const customerName = preorderCustomerNameInput.value;
+            const customerContact = preorderCustomerContactInput.value;
+            const pickupDate = preorderPickupDateInput.value;
+            if (customerName && customerContact && pickupDate) {
+                recordPreOrder(customerName, customerContact, pickupDate);
+                preorderModal.classList.remove('flex');
+                preorderModal.classList.add('hidden');
+            } else {
+                console.error("All pre-order fields are required.");
+            }
+        });
+        
         exportSalesBtn.addEventListener('click', () => {
             const csvData = salesRecords.map(s => ({
-                date: new Date(s.timestamp.seconds * 1000).toLocaleDateString(),
-                total: s.total,
-                orderType: s.orderType,
-                customerName: s.customerName || '',
-                customerContact: s.customerContact || ''
+                date: s.timestamp.toDate().toLocaleString(),
+                totalAmount: s.totalAmount,
+                paymentMethod: s.paymentMethod,
+                items: s.items.map(item => `${item.name} (x${item.quantity})`).join(', '),
+                customerContact: s.customerContact
             }));
             exportToCsv(csvData, 'sales_records.csv');
         });
-
+        
         exportExpensesBtn.addEventListener('click', () => {
             const csvData = expensesRecords.map(e => ({
-                date: new Date(e.timestamp.seconds * 1000).toLocaleDateString(),
+                date: e.timestamp.toDate().toLocaleDateString(),
                 name: e.name,
                 price: e.price,
-                unit: e.unit,
-                quantity: e.quantity,
-                total: e.total
             }));
             exportToCsv(csvData, 'expenses_records.csv');
         });
-
-        viewCalendarBtn.addEventListener('click', () => {
-            fetchPreOrders();
-            calendarModal.classList.remove('hidden');
-            calendarModal.classList.add('flex');
-        });
-
-        closeCalendarModalBtn.addEventListener('click', () => {
-            calendarModal.classList.remove('flex');
-            calendarModal.classList.add('hidden');
-        });
-
-        closeOrderDetailsModalBtn.addEventListener('click', () => {
-            orderDetailsModal.classList.remove('flex');
-            orderDetailsModal.classList.add('hidden');
-        });
         
-        closeCustomerHistoryModalBtn.addEventListener('click', () => {
-            customerHistoryModal.classList.remove('flex');
-            customerHistoryModal.classList.add('hidden');
-        });
+        addExpenseBtn.addEventListener('click', saveExpense);
         
-        customerList.addEventListener('click', (e) => {
-            const { contact, action } = e.target.dataset;
-            if (action === 'view-history') {
-                viewCustomerHistory(contact);
+        addMenuItemBtn.addEventListener('click', saveMenuItem);
+
+        salesFilterSelect.addEventListener('change', (e) => {
+            currentSalesFilter = e.target.value;
+            fetchSalesRecords(currentSalesFilter);
+        });
+
+        expensesContainer.addEventListener('click', (e) => {
+            const { id, action } = e.target.closest('button').dataset;
+            if (action === 'delete-expense') {
+                deleteExpense(id);
+            } else if (action === 'edit-expense') {
+                // Future implementation for editing expenses
+                console.log('Edit expense functionality to be implemented.');
             }
         });
-
-        // Event listener for pre-order completion in the calendar modal
-        calendarModal.addEventListener('click', (e) => {
-            const { id, action } = e.target.dataset;
+        
+        menuListContainer.addEventListener('click', (e) => {
+            const { id, action } = e.target.closest('button').dataset;
+            if (action === 'delete-menu-item') {
+                deleteMenuItem(id);
+            } else if (action === 'edit-menu-item') {
+                // Future implementation for editing menu items
+                console.log('Edit menu item functionality to be implemented.');
+            }
+        });
+        
+        preorderListContainer.addEventListener('click', (e) => {
+            const { id, action } = e.target.closest('button').dataset;
             if (action === 'complete-pre-order') {
                 completePreOrder(id);
             }
         });
-
-
-        // Initial render on page load
-        document.addEventListener('DOMContentLoaded', () => {
-            showView('cashier'); // Start with cashier view
-            fetchMenuItems(); // Fetch menu on load
+        
+        menuSearchInput.addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase();
+            const filteredItems = menuItems.filter(item => item.name.toLowerCase().includes(searchTerm));
+            renderMenuCards(filteredItems);
         });
 
-        // Listeners for changes in Firebase
+        notificationBtn.addEventListener('click', () => {
+            notificationModal.classList.remove('hidden');
+            notificationModal.classList.add('flex');
+        });
+
+        closeNotificationModalBtn.addEventListener('click', () => {
+            notificationModal.classList.remove('flex');
+            notificationModal.classList.add('hidden');
+        });
+        
+        notificationList.addEventListener('click', (e) => {
+            const { id, action } = e.target.closest('button').dataset;
+            if (action === 'dismiss-notification') {
+                dismissNotification(id);
+            }
+        });
+
+        // Real-time listeners for Firebase collections
         onSnapshot(collection(db, "menuItems"), (snapshot) => {
             menuItems = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             renderMenuCards();
@@ -1069,13 +1072,19 @@
             fetchExpenses();
         });
 
-        // The customer listener is intentionally removed as customer data is now fetched from sales/pre-order records on demand.
-        // This is a more efficient approach given the current data structure.
-
         onSnapshot(collection(db, "preOrders"), () => {
             fetchPreOrders();
         });
 
+        onSnapshot(collection(db, "notifications"), () => {
+            fetchNotifications();
+        });
+        
+        // Initial render on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            showView('cashier'); // Start with cashier view
+            renderCart(); // Ensure cart is initialized
+        });
     </script>
 </body>
 </html>
