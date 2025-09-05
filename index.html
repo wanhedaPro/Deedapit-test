@@ -235,7 +235,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getFirestore, collection, addDoc, getDocs, doc, deleteDoc, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, getDocs, doc, deleteDoc, query, where, onSnapshot, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
         // Your Firebase configuration
         const firebaseConfig = {
@@ -410,9 +410,22 @@
 
         async function fetchCustomers() {
             try {
-                const q = query(collection(db, "customers"));
-                const querySnapshot = await getDocs(q);
-                const customers = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                const salesSnapshot = await getDocs(collection(db, "salesRecords"));
+                const preOrdersSnapshot = await getDocs(collection(db, "preOrders"));
+                const allOrders = [...salesSnapshot.docs, ...preOrdersSnapshot.docs];
+                
+                const uniqueCustomers = {};
+                allOrders.forEach(doc => {
+                    const data = doc.data();
+                    if (data.customerContact) {
+                        uniqueCustomers[data.customerContact] = {
+                            name: data.customerName,
+                            contact: data.customerContact
+                        };
+                    }
+                });
+
+                const customers = Object.values(uniqueCustomers);
                 renderCustomers(customers);
             } catch (e) {
                 console.error("Error fetching customers: ", e);
@@ -589,7 +602,7 @@
                     <td class="py-3 px-6 whitespace-nowrap">${customer.name || 'N/A'}</td>
                     <td class="py-3 px-6">${customer.contact || 'N/A'}</td>
                     <td class="py-3 px-6 text-center">
-                        <button data-id="${customer.id}" data-action="view-history" class="text-sm bg-blue-500 text-white py-1 px-2 rounded hover:bg-blue-600">View History</button>
+                        <button data-contact="${customer.contact}" data-action="view-history" class="text-sm bg-blue-500 text-white py-1 px-2 rounded hover:bg-blue-600">View History</button>
                     </td>
                 `;
                 tbody.appendChild(row);
@@ -602,7 +615,7 @@
             calendarEl.innerHTML = '';
             
             const groupedByDate = preOrderRecords.reduce((acc, order) => {
-                const dateKey = new Date(order.preOrderDate).toDateString();
+                const dateKey = order.preOrderDate;
                 if (!acc[dateKey]) {
                     acc[dateKey] = [];
                 }
@@ -618,7 +631,7 @@
             for (const date in groupedByDate) {
                 const dateHeader = document.createElement('h4');
                 dateHeader.className = 'text-lg font-bold mt-4 mb-2';
-                dateHeader.textContent = date;
+                dateHeader.textContent = new Date(date).toDateString();
                 calendarEl.appendChild(dateHeader);
 
                 const list = document.createElement('ul');
@@ -844,11 +857,16 @@
             }
         }
         
-        async function viewCustomerHistory(customerId) {
+        async function viewCustomerHistory(customerContact) {
             try {
-                const q = query(collection(db, "salesRecords"), where("customerContact", "==", customerId));
-                const querySnapshot = await getDocs(q);
-                const history = querySnapshot.docs.map(doc => doc.data());
+                const salesQ = query(collection(db, "salesRecords"), where("customerContact", "==", customerContact));
+                const preOrderQ = query(collection(db, "preOrders"), where("customerContact", "==", customerContact));
+                
+                const salesSnapshot = await getDocs(salesQ);
+                const preOrderSnapshot = await getDocs(preOrderQ);
+                
+                const history = [...salesSnapshot.docs, ...preOrderSnapshot.docs].map(doc => doc.data());
+                history.sort((a,b) => b.timestamp.seconds - a.timestamp.seconds);
 
                 customerHistoryContent.innerHTML = '';
                 if (history.length === 0) {
@@ -861,6 +879,7 @@
                             <tr class="bg-gray-200 text-gray-600 uppercase text-sm leading-normal">
                                 <th class="py-3 px-6 text-left">Date</th>
                                 <th class="py-3 px-6 text-left">Total</th>
+                                <th class="py-3 px-6 text-left">Type</th>
                             </tr>
                         </thead>
                         <tbody class="text-gray-600 text-sm font-light"></tbody>
@@ -872,6 +891,7 @@
                         row.innerHTML = `
                             <td class="py-3 px-6 whitespace-nowrap">${new Date(record.timestamp.seconds * 1000).toLocaleString()}</td>
                             <td class="py-3 px-6">RM ${record.total.toFixed(2)}</td>
+                            <td class="py-3 px-6">${record.preOrderDate ? 'Pre-order' : 'Walk-in/Online'}</td>
                         `;
                         tbody.appendChild(row);
                     });
@@ -1013,11 +1033,20 @@
         });
         
         customerList.addEventListener('click', (e) => {
-            const { id, action } = e.target.dataset;
+            const { contact, action } = e.target.dataset;
             if (action === 'view-history') {
-                viewCustomerHistory(id);
+                viewCustomerHistory(contact);
             }
         });
+
+        // Event listener for pre-order completion in the calendar modal
+        calendarModal.addEventListener('click', (e) => {
+            const { id, action } = e.target.dataset;
+            if (action === 'complete-pre-order') {
+                completePreOrder(id);
+            }
+        });
+
 
         // Initial render on page load
         document.addEventListener('DOMContentLoaded', () => {
@@ -1040,9 +1069,8 @@
             fetchExpenses();
         });
 
-        onSnapshot(collection(db, "customers"), () => {
-            fetchCustomers();
-        });
+        // The customer listener is intentionally removed as customer data is now fetched from sales/pre-order records on demand.
+        // This is a more efficient approach given the current data structure.
 
         onSnapshot(collection(db, "preOrders"), () => {
             fetchPreOrders();
